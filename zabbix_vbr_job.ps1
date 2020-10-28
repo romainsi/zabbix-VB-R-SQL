@@ -4,7 +4,7 @@
 # This script is intended for use with Zabbix > 5.X
 
 #Configure sqlquery function with user/pass (line 72-73), create user/pass in sql server and reader rights , permit to connect with local user in sql settings.
-$veeamserver = 'vs-veeam-mlb.synergie.local'
+$veeamserver = 'veeam.contoso.local'
 
 $ITEM = [string]$args[0]
 
