@@ -3,7 +3,10 @@
 # Description: Query Veeam job information
 # This script is intended for use with Zabbix > 5.X
 
-#Configure sqlquery function with user/pass (line 72-73), create user/pass in sql server and reader rights , permit to connect with local user in sql settings.
+# Add UserParameter :
+# UserParameter=vbr[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1" "$1"
+
+# Configure sqlquery function with user/pass (line 75-76), create user/pass in sql server and reader rights , permit to connect with local user in sql settings.
 $veeamserver = 'veeam.contoso.local'
 
 $ITEM = [string]$args[0]
