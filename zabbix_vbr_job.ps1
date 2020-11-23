@@ -192,6 +192,7 @@ switch ($ITEM)
 		$Return = $Return -replace 'è', '&eagrave;'
 		$Return = $Return -replace 'à', '&aacute;'
 		$Return = $Return -replace '"', '\"'
+		$Return = '\"' + $return + '\"'
 		
 		.\zabbix_sender.exe -c .\zabbix_agentd.conf -k ResultsBackup -o $Return
 		
