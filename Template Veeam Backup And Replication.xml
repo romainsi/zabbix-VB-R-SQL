@@ -1,0 +1,1317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>5.2</version>
+    <date>2020-11-23T08:21:54Z</date>
+    <groups>
+        <group>
+            <name>Templates</name>
+        </group>
+    </groups>
+    <templates>
+        <template>
+            <template>Template Veeam Backup And Replication</template>
+            <name>Template Veeam Backup And Replication</name>
+            <groups>
+                <group>
+                    <name>Templates</name>
+                </group>
+            </groups>
+            <applications>
+                <application>
+                    <name>MASTER ITEMS</name>
+                </application>
+                <application>
+                    <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                </application>
+                <application>
+                    <name>VEEAM Backup &amp; Recovery - BackupSync Job(s)</name>
+                </application>
+                <application>
+                    <name>VEEAM Backup &amp; Recovery - Tape job(s)</name>
+                </application>
+                <application>
+                    <name>VEEAM Repository</name>
+                </application>
+            </applications>
+            <items>
+                <item>
+                    <name>Veeam Repository Info</name>
+                    <type>TRAP</type>
+                    <key>RepoInfo</key>
+                    <delay>0</delay>
+                    <history>1d</history>
+                    <trends>0</trends>
+                    <value_type>TEXT</value_type>
+                    <applications>
+                        <application>
+                            <name>MASTER ITEMS</name>
+                        </application>
+                        <application>
+                            <name>VEEAM Repository</name>
+                        </application>
+                    </applications>
+                    <triggers>
+                        <trigger>
+                            <expression>{nodata(7200)}=1</expression>
+                            <name>No data in RepoInfo</name>
+                            <priority>AVERAGE</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <name>Veeam Backup Jobs Status</name>
+                    <type>TRAP</type>
+                    <key>ResultsBackup</key>
+                    <delay>0</delay>
+                    <history>1d</history>
+                    <trends>0</trends>
+                    <value_type>TEXT</value_type>
+                    <applications>
+                        <application>
+                            <name>MASTER ITEMS</name>
+                        </application>
+                        <application>
+                            <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                        </application>
+                    </applications>
+                    <preprocessing>
+                        <step>
+                            <type>TRIM</type>
+                            <parameters>
+                                <parameter>&quot;</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                    <triggers>
+                        <trigger>
+                            <expression>{nodata(7200)}=1</expression>
+                            <name>No data in ResultBackup</name>
+                            <priority>AVERAGE</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <name>Veeam BackupSync Jobs Status</name>
+                    <type>TRAP</type>
+                    <key>ResultsBackupSync</key>
+                    <delay>0</delay>
+                    <history>1d</history>
+                    <trends>0</trends>
+                    <value_type>TEXT</value_type>
+                    <applications>
+                        <application>
+                            <name>MASTER ITEMS</name>
+                        </application>
+                        <application>
+                            <name>VEEAM Backup &amp; Recovery - BackupSync Job(s)</name>
+                        </application>
+                    </applications>
+                    <triggers>
+                        <trigger>
+                            <expression>{nodata(7200)}=1</expression>
+                            <name>No data in ResultBackupSync</name>
+                            <priority>AVERAGE</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <name>Veeam Tape Jobs Status</name>
+                    <type>TRAP</type>
+                    <key>ResultsBackupTape</key>
+                    <delay>0</delay>
+                    <history>1d</history>
+                    <trends>0</trends>
+                    <value_type>TEXT</value_type>
+                    <applications>
+                        <application>
+                            <name>MASTER ITEMS</name>
+                        </application>
+                        <application>
+                            <name>VEEAM Backup &amp; Recovery - Tape job(s)</name>
+                        </application>
+                    </applications>
+                    <triggers>
+                        <trigger>
+                            <expression>{nodata(7200)}=1</expression>
+                            <name>No data in ResultTapeJob</name>
+                            <priority>AVERAGE</priority>
+                        </trigger>
+                    </triggers>
+                </item>
+                <item>
+                    <name>Start All Jobs</name>
+                    <key>system.run[powershell -NoProfile -ExecutionPolicy Bypass -File &quot;C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1&quot; StartJobs,nowait]</key>
+                    <delay>10m</delay>
+                    <applications>
+                        <application>
+                            <name>MASTER ITEMS</name>
+                        </application>
+                    </applications>
+                    <preprocessing>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBID</parameter>
+                                <parameter>#JOBID</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBNAME</parameter>
+                                <parameter>#JOBNAME</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBSTART</parameter>
+                                <parameter>#JOBSTART</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBRESULT</parameter>
+                                <parameter>#JOBRESULT</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                </item>
+                <item>
+                    <name>Nombre de travaux VEEAM Total</name>
+                    <key>vbr[TotalJob]</key>
+                    <applications>
+                        <application>
+                            <name>MASTER ITEMS</name>
+                        </application>
+                    </applications>
+                </item>
+            </items>
+            <discovery_rules>
+                <discovery_rule>
+                    <name>VEEAM Backup Jobs</name>
+                    <type>DEPENDENT</type>
+                    <key>Discovery.Backup.Jobs</key>
+                    <delay>0</delay>
+                    <lifetime>1d</lifetime>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Dernière fin de tâche {#JOBNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.LastEndBackup['{#JOBID}',Backup]</key>
+                            <delay>0</delay>
+                            <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot;)].JOBEND</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackup</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Dernier lancement tâche {#JOBNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.LastStartBackup['{#JOBID}',Backup]</key>
+                            <delay>0</delay>
+                            <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot;)].JOBSTART</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackup</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Progress Backup {#JOBNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.ProgressBackup['{#JOBID}',Backup]</key>
+                            <delay>0</delay>
+                            <units>%</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot;)].JOBPROGRESS</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackup</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Dernière raison {#JOBNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.ReasonBackup['{#JOBID}',Backup]</key>
+                            <delay>0</delay>
+                            <trends>0</trends>
+                            <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot;)].JOBREASON</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackup</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Resultat Backup {#JOBNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.ResultBackup['{#JOBID}',Backup]</key>
+                            <delay>0</delay>
+                            <value_type>FLOAT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                                </application>
+                            </applications>
+                            <valuemap>
+                                <name>VbrJsonResult</name>
+                            </valuemap>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot;)].JOBRESULT</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackup</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Is Retry {#JOBNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.RetryBackup['{#JOBID}',Backup]</key>
+                            <delay>0</delay>
+                            <trends>0</trends>
+                            <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Backup Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot;)].JOBRETRY</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackup</key>
+                            </master_item>
+                        </item_prototype>
+                    </item_prototypes>
+                    <trigger_prototypes>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackup['{#JOBID}',Backup].last()}&lt;0 and {Template Veeam Backup And Replication:data.ProgressBackup['{#JOBID}',Backup].last(#45)}&lt;100</expression>
+                            <recovery_mode>RECOVERY_EXPRESSION</recovery_mode>
+                            <recovery_expression>{Template Veeam Backup And Replication:data.ProgressBackup['{#JOBID}',Backup].last()}=100</recovery_expression>
+                            <name>Backup {#JOBNAME} en cours &gt; 8h</name>
+                            <priority>HIGH</priority>
+                            <description>{#JOBREASON}</description>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM Backup Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackup['{#JOBID}',Backup].last()}=2 and {Template Veeam Backup And Replication:data.RetryBackup['{#JOBID}',Backup].iregexp(False)}=1</expression>
+                            <name>Backup {#JOBNAME} en Erreur</name>
+                            <priority>HIGH</priority>
+                            <description>{#JOBREASON}</description>
+                            <dependencies>
+                                <dependency>
+                                    <name>Backup {#JOBNAME} en Erreur (With Retry)</name>
+                                    <expression>{Template Veeam Backup And Replication:data.ResultBackup['{#JOBID}',Backup].last()}=2 and {Template Veeam Backup And Replication:data.RetryBackup['{#JOBID}',Backup].iregexp(True)}=1</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM Backup Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackup['{#JOBID}',Backup].last()}=2 and {Template Veeam Backup And Replication:data.RetryBackup['{#JOBID}',Backup].iregexp(True)}=1</expression>
+                            <name>Backup {#JOBNAME} en Erreur (With Retry)</name>
+                            <priority>HIGH</priority>
+                            <description>{#JOBREASON}</description>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM Backup Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackup['{#JOBID}',Backup].last()}=1 and {Template Veeam Backup And Replication:data.RetryBackup['{#JOBID}',Backup].iregexp(False)}</expression>
+                            <name>Backup {#JOBNAME} terminé avec Avertissement</name>
+                            <priority>AVERAGE</priority>
+                            <description>{#JOBREASON}</description>
+                            <dependencies>
+                                <dependency>
+                                    <name>Backup {#JOBNAME} terminé avec Avertissement (With Retry)</name>
+                                    <expression>{Template Veeam Backup And Replication:data.ResultBackup['{#JOBID}',Backup].last()}=1 and {Template Veeam Backup And Replication:data.RetryBackup['{#JOBID}',Backup].iregexp(True)}=1</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM Backup Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackup['{#JOBID}',Backup].last()}=1 and {Template Veeam Backup And Replication:data.RetryBackup['{#JOBID}',Backup].iregexp(True)}=1</expression>
+                            <name>Backup {#JOBNAME} terminé avec Avertissement (With Retry)</name>
+                            <priority>AVERAGE</priority>
+                            <description>{#JOBREASON}</description>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM Backup Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                    </trigger_prototypes>
+                    <master_item>
+                        <key>ResultsBackup</key>
+                    </master_item>
+                    <preprocessing>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBID</parameter>
+                                <parameter>{#JOBID}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBNAME</parameter>
+                                <parameter>{#JOBNAME}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBRESULT</parameter>
+                                <parameter>{#JOBRESULT}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBRETRY</parameter>
+                                <parameter>{#JOBRETRY}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBREASON</parameter>
+                                <parameter>{#JOBREASON}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBSTART</parameter>
+                                <parameter>{#JOBSTART}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBEND</parameter>
+                                <parameter>{#JOBEND}</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                </discovery_rule>
+                <discovery_rule>
+                    <name>VEEAM BackupSync Jobs</name>
+                    <type>DEPENDENT</type>
+                    <key>DiscoveryBackupSyncJobs</key>
+                    <delay>0</delay>
+                    <lifetime>1d</lifetime>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Dernière fin de tâche {#JOBBSNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.LastEndBackupSync['{#JOBBSID}',BackupSync]</key>
+                            <delay>0</delay>
+                            <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - BackupSync Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBBSID == &quot;{#JOBBSID}&quot;)].JOBBSSTART</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupSync</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Dernier lancement tâche {#JOBBSNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.LastStartBackupSync['{#JOBBSID}',BackupSync]</key>
+                            <delay>0</delay>
+                            <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - BackupSync Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBBSID == &quot;{#JOBBSID}&quot;)].JOBBSSTART</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupSync</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Dernière raison {#JOBBSNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.ReasonBackupSync['{#JOBBSID}',BackupSync]</key>
+                            <delay>0</delay>
+                            <trends>0</trends>
+                            <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - BackupSync Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBBSID == &quot;{#JOBBSID}&quot;)].JOBBSREASON</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupSync</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Resultat BackupSync {#JOBBSNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.ResultBackupSync['{#JOBBSID}',BackupSync]</key>
+                            <delay>0</delay>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - BackupSync Job(s)</name>
+                                </application>
+                            </applications>
+                            <valuemap>
+                                <name>VbrJsonResult</name>
+                            </valuemap>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBBSID == &quot;{#JOBBSID}&quot;)].JOBBSRESULT</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupSync</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Is Retry {#JOBBSNAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.RetryBackupSync['{#JOBBSID}',BackupSync]</key>
+                            <delay>0</delay>
+                            <trends>0</trends>
+                            <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - BackupSync Job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBBSID == &quot;{#JOBBSID}&quot;)].JOBBSRETRY</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupSync</key>
+                            </master_item>
+                        </item_prototype>
+                    </item_prototypes>
+                    <trigger_prototypes>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackupSync['{#JOBBSID}',BackupSync].last()}=2 and {Template Veeam Backup And Replication:data.RetryBackupSync['{#JOBBSID}',BackupSync].iregexp(False)}=1</expression>
+                            <name>BackupSync {#JOBBSNAME} en Erreur</name>
+                            <priority>HIGH</priority>
+                            <description>{#JOBBSREASON}</description>
+                            <dependencies>
+                                <dependency>
+                                    <name>BackupSync {#JOBBSNAME} en Erreur (With Retry)</name>
+                                    <expression>{Template Veeam Backup And Replication:data.ResultBackupSync['{#JOBBSID}',BackupSync].last()}=2 and {Template Veeam Backup And Replication:data.RetryBackupSync['{#JOBBSID}',BackupSync].iregexp(True)}=1</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM BackupSync Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackupSync['{#JOBBSID}',BackupSync].last()}=2 and {Template Veeam Backup And Replication:data.RetryBackupSync['{#JOBBSID}',BackupSync].iregexp(True)}=1</expression>
+                            <name>BackupSync {#JOBBSNAME} en Erreur (With Retry)</name>
+                            <priority>HIGH</priority>
+                            <description>{#JOBBSREASON}</description>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM BackupSync Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackupSync['{#JOBBSID}',BackupSync].last()}=1 and {Template Veeam Backup And Replication:data.RetryBackupSync['{#JOBBSID}',BackupSync].iregexp(False)}=1</expression>
+                            <name>BackupSync {#JOBBSNAME} terminé avec Avertissement</name>
+                            <priority>AVERAGE</priority>
+                            <description>{#JOBBSREASON}</description>
+                            <dependencies>
+                                <dependency>
+                                    <name>BackupSync {#JOBBSNAME} terminé avec Avertissement (With retry)</name>
+                                    <expression>{Template Veeam Backup And Replication:data.ResultBackupSync['{#JOBBSID}',BackupSync].last()}=1 and {Template Veeam Backup And Replication:data.RetryBackupSync['{#JOBBSID}',BackupSync].iregexp(True)}=1</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM BackupSync Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <expression>{Template Veeam Backup And Replication:data.ResultBackupSync['{#JOBBSID}',BackupSync].last()}=1 and {Template Veeam Backup And Replication:data.RetryBackupSync['{#JOBBSID}',BackupSync].iregexp(True)}=1</expression>
+                            <name>BackupSync {#JOBBSNAME} terminé avec Avertissement (With retry)</name>
+                            <priority>AVERAGE</priority>
+                            <description>{#JOBBSREASON}</description>
+                            <tags>
+                                <tag>
+                                    <tag>VEEAM</tag>
+                                </tag>
+                                <tag>
+                                    <tag>VEEAM BackupSync Jobs</tag>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                    </trigger_prototypes>
+                    <master_item>
+                        <key>ResultsBackupSync</key>
+                    </master_item>
+                    <preprocessing>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBBSID</parameter>
+                                <parameter>{#JOBBSID}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBBSNAME</parameter>
+                                <parameter>{#JOBBSNAME}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBBSRESULT</parameter>
+                                <parameter>{#JOBBSRESULT}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBBSRETRY</parameter>
+                                <parameter>{#JOBBSRETRY}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBBSREASON</parameter>
+                                <parameter>{#JOBBSREASON}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBBSSTART</parameter>
+                                <parameter>{#JOBBSSTART}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBBSEND</parameter>
+                                <parameter>{#JOBBSEND}</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                </discovery_rule>
+                <discovery_rule>
+                    <name>VEEAM Repository</name>
+                    <type>DEPENDENT</type>
+                    <key>DiscoveryRepo</key>
+                    <delay>0</delay>
+                    <lifetime>7d</lifetime>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Espace total repository {#REPONAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.RepoInfo['{#REPONAME}',Capacity]</key>
+                            <delay>0</delay>
+                            <history>30d</history>
+                            <trends>90d</trends>
+                            <units>B</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Repository</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.REPONAME == &quot;{#REPONAME}&quot;)].REPOCAPACITY</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>RepoInfo</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Espace restant repository {#REPONAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.RepoInfo['{#REPONAME}',FreeSpace]</key>
+                            <delay>0</delay>
+                            <history>30d</history>
+                            <trends>90d</trends>
+                            <units>B</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Repository</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.REPONAME == &quot;{#REPONAME}&quot;)].REPOFREE</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>RepoInfo</key>
+                            </master_item>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last()}&lt;2147483648</expression>
+                                    <name>Less than 2Gb remaining on the repository {#NAME}</name>
+                                    <priority>HIGH</priority>
+                                    <tags>
+                                        <tag>
+                                            <tag>VEEAM</tag>
+                                        </tag>
+                                        <tag>
+                                            <tag>VEEAM Repository</tag>
+                                        </tag>
+                                    </tags>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                    </item_prototypes>
+                    <graph_prototypes>
+                        <graph_prototype>
+                            <name>Remaining repository space {#REPONAME}</name>
+                            <graph_items>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <color>1A7C11</color>
+                                    <item>
+                                        <host>Template Veeam Backup And Replication</host>
+                                        <key>data.RepoInfo['{#REPONAME}',FreeSpace]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                    </graph_prototypes>
+                    <master_item>
+                        <key>RepoInfo</key>
+                    </master_item>
+                    <preprocessing>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>REPONAME</parameter>
+                                <parameter>{#REPONAME}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>REPOFREE</parameter>
+                                <parameter>{#REPOFREE}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>REPOCAPACITY</parameter>
+                                <parameter>{#REPOCAPACITY}</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                </discovery_rule>
+                <discovery_rule>
+                    <name>VEEAM Tape jobs</name>
+                    <type>DEPENDENT</type>
+                    <key>DiscoveryTapeJobs</key>
+                    <delay>0</delay>
+                    <lifetime>7d</lifetime>
+                    <item_prototypes>
+                        <item_prototype>
+                            <name>Dernière fin de tâche {#JOBTAPENAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.LastEndBackupTape['{#JOBTAPEID}',BackupTape]</key>
+                            <delay>0</delay>
+                            <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Tape job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBTAPEID == &quot;{#JOBTAPEID}&quot;)].JOBTAPEEND</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupTape</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Dernier lancement tâche  {#JOBTAPENAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.LastStartBackupTape['{#JOBTAPEID}',BackupTape]</key>
+                            <delay>0</delay>
+                            <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Tape job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBTAPEID == &quot;{#JOBTAPEID}&quot;)].JOBTAPESTART</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupTape</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Dernière raison {#JOBTAPENAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.ReasonBackupTape['{#JOBTAPEID}',BackupTape]</key>
+                            <delay>0</delay>
+                            <trends>0</trends>
+                            <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Tape job(s)</name>
+                                </application>
+                            </applications>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBTAPEID == &quot;{#JOBTAPEID}&quot;)].JOBTAPEREASON</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[&quot;</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>&quot;]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupTape</key>
+                            </master_item>
+                        </item_prototype>
+                        <item_prototype>
+                            <name>Resultat Backup {#JOBTAPENAME}</name>
+                            <type>DEPENDENT</type>
+                            <key>data.ResultBackupTape['{#JOBTAPEID}',BackupTape]</key>
+                            <delay>0</delay>
+                            <history>30d</history>
+                            <trends>90d</trends>
+                            <value_type>FLOAT</value_type>
+                            <applications>
+                                <application>
+                                    <name>VEEAM Backup &amp; Recovery - Tape job(s)</name>
+                                </application>
+                            </applications>
+                            <valuemap>
+                                <name>VbrJsonResult</name>
+                            </valuemap>
+                            <preprocessing>
+                                <step>
+                                    <type>JSONPATH</type>
+                                    <parameters>
+                                        <parameter>$.[?(@.JOBTAPEID == &quot;{#JOBTAPEID}&quot;)].JOBTAPERESULT</parameter>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>[</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                                <step>
+                                    <type>STR_REPLACE</type>
+                                    <parameters>
+                                        <parameter>]</parameter>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
+                            <master_item>
+                                <key>ResultsBackupTape</key>
+                            </master_item>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <expression>{last()}=2</expression>
+                                    <recovery_mode>RECOVERY_EXPRESSION</recovery_mode>
+                                    <recovery_expression>{last()}=0</recovery_expression>
+                                    <name>Backup Tape {#JOBTAPENAME} en Erreur</name>
+                                    <priority>HIGH</priority>
+                                    <description>{#JOBTAPEREASON}</description>
+                                    <tags>
+                                        <tag>
+                                            <tag>VEEAM</tag>
+                                        </tag>
+                                        <tag>
+                                            <tag>VEEAM Tape jobs</tag>
+                                        </tag>
+                                    </tags>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <expression>{last()}=1</expression>
+                                    <recovery_mode>RECOVERY_EXPRESSION</recovery_mode>
+                                    <recovery_expression>{last()}=0</recovery_expression>
+                                    <name>Backup Tape {#JOBTAPENAME} terminé avec Avertissement</name>
+                                    <priority>AVERAGE</priority>
+                                    <description>{#JOBTAPEREASON}</description>
+                                    <tags>
+                                        <tag>
+                                            <tag>VEEAM</tag>
+                                        </tag>
+                                        <tag>
+                                            <tag>VEEAM Tape jobs</tag>
+                                        </tag>
+                                    </tags>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                    </item_prototypes>
+                    <master_item>
+                        <key>ResultsBackupTape</key>
+                    </master_item>
+                    <preprocessing>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBTAPEID</parameter>
+                                <parameter>{#JOBTAPEID}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBTAPENAME</parameter>
+                                <parameter>{#JOBTAPENAME}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBTAPERESULT</parameter>
+                                <parameter>{#JOBTAPERESULT}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBTAPERETRY</parameter>
+                                <parameter>{#JOBTAPERETRY}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBTAPEREASON</parameter>
+                                <parameter>{#JOBTAPEREASON}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBTAPESTART</parameter>
+                                <parameter>{#JOBTAPESTART}</parameter>
+                            </parameters>
+                        </step>
+                        <step>
+                            <type>STR_REPLACE</type>
+                            <parameters>
+                                <parameter>JOBTAPEEND</parameter>
+                                <parameter>{#JOBTAPEEND}</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                </discovery_rule>
+            </discovery_rules>
+            <tags>
+                <tag>
+                    <tag>VEEAM</tag>
+                </tag>
+            </tags>
+        </template>
+    </templates>
+    <value_maps>
+        <value_map>
+            <name>VbrJsonResult</name>
+            <mappings>
+                <mapping>
+                    <value>-1</value>
+                    <newvalue>Idle</newvalue>
+                </mapping>
+                <mapping>
+                    <value>0</value>
+                    <newvalue>Success</newvalue>
+                </mapping>
+                <mapping>
+                    <value>1</value>
+                    <newvalue>Warning</newvalue>
+                </mapping>
+                <mapping>
+                    <value>2</value>
+                    <newvalue>Error</newvalue>
+                </mapping>
+            </mappings>
+        </value_map>
+    </value_maps>
+</zabbix_export>
