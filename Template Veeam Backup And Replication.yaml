@@ -1,6 +1,6 @@
 zabbix_export:
   version: '5.2'
-  date: '2020-10-28T09:32:09Z'
+  date: '2020-11-23T08:21:51Z'
   groups:
     -
       name: Templates
@@ -54,6 +54,11 @@ zabbix_export:
               name: 'MASTER ITEMS'
             -
               name: 'VEEAM Backup & Recovery - Backup Job(s)'
+          preprocessing:
+            -
+              type: TRIM
+              parameters:
+                - '"'
           triggers:
             -
               expression: '{nodata(7200)}=1'
