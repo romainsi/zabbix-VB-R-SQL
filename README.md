@@ -72,9 +72,9 @@ Powershell get all informations via SQL and send it to zabbix server/proxy in js
 
 ## Setup
 
-1. Install the Zabbix agent2 on your host
+1. Install the Zabbix agent 2 on your host
 2.  In script, ajust variable $veeamserver = 'veeam.contoso.local' (line 7) and sqlquery function with user/pass (line 64-65) that you will create in the next step on the sql server 
-3.  Connect to the veeam sql server (with sql server express or other, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" for permit to connect with TCP/IP) and create user/pass with reader rights , permit to connect with local user in sql settings and specify the default database.
-4. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent2\scripts\` (create folder if not exist)
+3.  Connect to the veeam sql server (with SQL Server Management Studio or other, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" for permit to connect with TCP/IP) and create user/pass with reader rights , permit to connect with local user in sql settings and specify the default database.
+4. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
 5. Import Template_Veeam_Backup_And_Replication.yaml file into Zabbix.
 6. Associate "Template VEEAM Backup and Replication" to the host.
