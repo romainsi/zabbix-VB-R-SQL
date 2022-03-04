@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>5.0</version>
-    <date>2022-03-04T15:01:53Z</date>
+    <date>2022-03-04T15:06:28Z</date>
     <groups>
         <group>
             <name>Templates</name>
@@ -19,6 +19,18 @@
             <applications>
                 <application>
                     <name>Master Items</name>
+                </application>
+                <application>
+                    <name>Veeam Backup Jobs</name>
+                </application>
+                <application>
+                    <name>Veeam BackupSync Jobs</name>
+                </application>
+                <application>
+                    <name>Veeam Repository</name>
+                </application>
+                <application>
+                    <name>Veeam Tape Jobs</name>
                 </application>
             </applications>
             <items>
@@ -159,6 +171,11 @@
                             <key>data.LastEndBackup['{#JOBID}',Backup]</key>
                             <delay>0</delay>
                             <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Backup Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -185,6 +202,11 @@
                             <key>data.LastStartBackup['{#JOBID}',Backup]</key>
                             <delay>0</delay>
                             <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Backup Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -211,6 +233,11 @@
                             <key>data.ProgressBackup['{#JOBID}',Backup]</key>
                             <delay>0</delay>
                             <units>%</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Backup Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -238,6 +265,11 @@
                             <delay>0</delay>
                             <trends>0</trends>
                             <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>Veeam Backup Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -263,6 +295,11 @@
                             <type>DEPENDENT</type>
                             <key>data.ResultBackup['{#JOBID}',Backup]</key>
                             <delay>0</delay>
+                            <applications>
+                                <application>
+                                    <name>Veeam Backup Jobs</name>
+                                </application>
+                            </applications>
                             <valuemap>
                                 <name>VbrJsonResult</name>
                             </valuemap>
@@ -291,6 +328,11 @@
                             <type>DEPENDENT</type>
                             <key>data.RetryBackup['{#JOBID}',Backup]</key>
                             <delay>0</delay>
+                            <applications>
+                                <application>
+                                    <name>Veeam Backup Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -408,6 +450,11 @@
                             <key>data.LastEndBackupSync['{#JOBBSID}',BackupSync]</key>
                             <delay>0</delay>
                             <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam BackupSync Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -434,6 +481,11 @@
                             <key>data.LastStartBackupSync['{#JOBBSID}',BackupSync]</key>
                             <delay>0</delay>
                             <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam BackupSync Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -461,6 +513,11 @@
                             <delay>0</delay>
                             <trends>0</trends>
                             <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>Veeam BackupSync Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -487,6 +544,11 @@
                             <key>data.ResultBackupSync['{#JOBBSID}',BackupSync]</key>
                             <delay>0</delay>
                             <value_type>FLOAT</value_type>
+                            <applications>
+                                <application>
+                                    <name>Veeam BackupSync Jobs</name>
+                                </application>
+                            </applications>
                             <valuemap>
                                 <name>VbrJsonResult</name>
                             </valuemap>
@@ -517,6 +579,11 @@
                             <delay>0</delay>
                             <trends>0</trends>
                             <value_type>TEXT</value_type>
+                            <applications>
+                                <application>
+                                    <name>Veeam BackupSync Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -627,6 +694,11 @@
                             <key>data.RepoInfo['{#REPONAME}',Capacity]</key>
                             <delay>0</delay>
                             <units>B</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Repository</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -653,6 +725,11 @@
                             <key>data.RepoInfo['{#REPONAME}',FreeSpace]</key>
                             <delay>0</delay>
                             <units>B</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Repository</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -715,6 +792,11 @@
                             <key>data.LastEndBackupTape['{#JOBTAPEID}',BackupTape]</key>
                             <delay>0</delay>
                             <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Tape Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -741,6 +823,11 @@
                             <key>data.LastStartBackupTape['{#JOBTAPEID}',BackupTape]</key>
                             <delay>0</delay>
                             <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Tape Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -767,6 +854,11 @@
                             <key>data.ReasonBackupTape['{#JOBTAPEID}',BackupTape]</key>
                             <delay>0</delay>
                             <units>unixtime</units>
+                            <applications>
+                                <application>
+                                    <name>Veeam Tape Jobs</name>
+                                </application>
+                            </applications>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
@@ -793,6 +885,11 @@
                             <key>data.ResultBackupTape['{#JOBTAPEID}',BackupTape]</key>
                             <delay>0</delay>
                             <value_type>FLOAT</value_type>
+                            <applications>
+                                <application>
+                                    <name>Veeam Tape Jobs</name>
+                                </application>
+                            </applications>
                             <valuemap>
                                 <name>VbrJsonResult</name>
                             </valuemap>
