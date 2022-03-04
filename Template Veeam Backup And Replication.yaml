@@ -1,6 +1,6 @@
 zabbix_export:
   version: '5.4'
-  date: '2022-03-01T09:56:42Z'
+  date: '2022-03-04T14:49:00Z'
   groups:
     -
       uuid: 7df96b18c230490a9a0a9e2307226338
@@ -368,7 +368,7 @@ zabbix_export:
                   tag: 'VEEAM Backup Jobs'
             -
               uuid: af2b922277c54ed198e6559727a7cfb9
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","False")'
+              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","False")=1'
               name: 'Backup {#JOBNAME} terminé avec Avertissement'
               priority: AVERAGE
               description: '{#JOBREASON}'
@@ -449,7 +449,7 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBBSID == "{#JOBBSID}")].JOBBSSTART'
+                    - '$.[?(@.JOBBSID == "{#JOBBSID}")].JOBBSEND'
                 -
                   type: STR_REPLACE
                   parameters:
