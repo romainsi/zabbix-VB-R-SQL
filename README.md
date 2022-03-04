@@ -1,7 +1,7 @@
 # VEEAM-B&R-SQL
 
 This template use SQL Query to discover VEEAM Backup jobs, Veeam BackupSync, Veeam Tape Job, All Repositories.
-Powershell get all informations via SQL and send it to zabbix server/proxy in json in one shot.
+Powershell get all informations via SQL and send it to zabbix server/proxy with json, use zabbix sender in one shot.
 
 - Work with Veeam backup & replication V9 to V10 and V11 (actually ok on 11.0.1.1261)
 - Work with Zabbix 5.X (not test with v6)
