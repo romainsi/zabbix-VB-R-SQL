@@ -57,8 +57,6 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 ### Discovery Veeam Tape Jobs
 - [HIGH] => Job has FAILED
 - [AVERAGE] => Job has completed with warning
-- [HIGH] => Job is still running (8 hours)
-- [INFORMATION] => No data recovery for 24 hours
 
 ### Discovery Veeam BackupSync Jobs
 - [HIGH] => Job has FAILED
