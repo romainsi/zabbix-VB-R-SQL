@@ -1,6 +1,6 @@
 zabbix_export:
-  version: '5.4'
-  date: '2022-03-07T09:51:02Z'
+  version: '6.0'
+  date: '2022-06-08T11:54:07Z'
   groups:
     -
       uuid: 7df96b18c230490a9a0a9e2307226338
@@ -15,103 +15,12 @@ zabbix_export:
           name: Templates
       items:
         -
-          uuid: 21ce719aca6d44c9b94bd2e841dcb459
-          name: 'Veeam Repository Info'
-          type: TRAP
-          key: RepoInfo
-          delay: '0'
-          history: 1d
-          trends: '0'
-          value_type: TEXT
-          tags:
-            -
-              tag: Application
-              value: 'MASTER ITEMS'
-            -
-              tag: Application
-              value: 'VEEAM Repository'
-          triggers:
-            -
-              uuid: 671f4be1ba9d41a39aec048031467920
-              expression: 'nodata(/Template Veeam Backup And Replication/RepoInfo,7200s)=1'
-              name: 'No data in RepoInfo'
-              priority: AVERAGE
-        -
-          uuid: 976db4687c93439b854b56f881c97686
-          name: 'Veeam Backup Jobs Status'
-          type: TRAP
-          key: ResultsBackup
-          delay: '0'
-          history: 1d
-          trends: '0'
-          value_type: TEXT
-          preprocessing:
-            -
-              type: TRIM
-              parameters:
-                - '"'
-          tags:
-            -
-              tag: Application
-              value: 'MASTER ITEMS'
-            -
-              tag: Application
-              value: 'VEEAM Backup & Recovery - Backup Job(s)'
-          triggers:
-            -
-              uuid: c48fb44e0edc4f45b21d8d553110afeb
-              expression: 'nodata(/Template Veeam Backup And Replication/ResultsBackup,7200s)=1'
-              name: 'No data in ResultBackup'
-              priority: AVERAGE
-        -
-          uuid: fd220f9783f948b0a3ae18239e3515b8
-          name: 'Veeam BackupSync Jobs Status'
-          type: TRAP
-          key: ResultsBackupSync
-          delay: '0'
-          history: 1d
-          trends: '0'
-          value_type: TEXT
-          tags:
-            -
-              tag: Application
-              value: 'MASTER ITEMS'
-            -
-              tag: Application
-              value: 'VEEAM Backup & Recovery - BackupSync Job(s)'
-          triggers:
-            -
-              uuid: df14f3dac4e64277a291a1c5bca79eba
-              expression: 'nodata(/Template Veeam Backup And Replication/ResultsBackupSync,7200s)=1'
-              name: 'No data in ResultBackupSync'
-              priority: AVERAGE
-        -
-          uuid: 29b9808e5dda40518336e05e599b0e16
-          name: 'Veeam Tape Jobs Status'
-          type: TRAP
-          key: ResultsBackupTape
-          delay: '0'
-          history: 1d
-          trends: '0'
-          value_type: TEXT
-          tags:
-            -
-              tag: Application
-              value: 'MASTER ITEMS'
-            -
-              tag: Application
-              value: 'VEEAM Backup & Recovery - Tape job(s)'
-          triggers:
-            -
-              uuid: 065c4a68c1924832981fa3eb92f068a2
-              expression: 'nodata(/Template Veeam Backup And Replication/ResultsBackupTape,7200s)=1'
-              name: 'No data in ResultTapeJob'
-              priority: AVERAGE
-        -
           uuid: 8980fabd75684014aa4de0bd63d185c5
           name: 'Start All Jobs'
-          key: 'system.run[powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" StartJobs,nowait]'
+          key: 'veeam.info[StartJobs]'
           delay: 10m
+          trends: '0'
+          value_type: TEXT
           preprocessing:
             -
               type: STR_REPLACE
@@ -137,20 +46,158 @@ zabbix_export:
             -
               tag: Application
               value: 'MASTER ITEMS'
+            -
+              tag: Application
+              value: Veeam
         -
           uuid: 57abe94db85d49009745ab2d163fa59b
           name: 'Total number of VEEAM jobs'
-          key: 'system.run[powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" TotalJob]'
+          key: 'veeam.info[TotalJob]'
+          trends: '0'
+          value_type: TEXT
           tags:
             -
               tag: Application
               value: 'MASTER ITEMS'
+            -
+              tag: Application
+              value: Veeam
+        -
+          uuid: 21ce719aca6d44c9b94bd2e841dcb459
+          name: 'Veeam Repository Info'
+          type: TRAP
+          key: veeam.Repo.Info
+          delay: '0'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Application
+              value: 'MASTER ITEMS'
+            -
+              tag: Application
+              value: Veeam
+            -
+              tag: Application
+              value: 'VEEAM Repository'
+          triggers:
+            -
+              uuid: 671f4be1ba9d41a39aec048031467920
+              expression: 'nodata(/Template Veeam Backup And Replication/veeam.Repo.Info,7200s)=1'
+              name: 'No data in RepoInfo'
+              priority: AVERAGE
+        -
+          uuid: 976db4687c93439b854b56f881c97686
+          name: 'Veeam Backup Jobs Status'
+          type: TRAP
+          key: veeam.Results.Backup
+          delay: '0'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: TRIM
+              parameters:
+                - '"'
+          tags:
+            -
+              tag: Application
+              value: 'MASTER ITEMS'
+            -
+              tag: Application
+              value: Veeam
+            -
+              tag: Application
+              value: 'VEEAM Backup & Recovery - Backup Job(s)'
+          triggers:
+            -
+              uuid: c48fb44e0edc4f45b21d8d553110afeb
+              expression: 'nodata(/Template Veeam Backup And Replication/veeam.Results.Backup,7200s)=1'
+              name: 'No data in ResultBackup'
+              priority: AVERAGE
+        -
+          uuid: 8647aeb21e5d4d6e8a834464ccfea264
+          name: 'Veeam Backup Copy Jobs Status'
+          type: TRAP
+          key: veeam.Results.BackupCopy
+          delay: '0'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Application
+              value: 'MASTER ITEMS'
+            -
+              tag: Application
+              value: Veeam
+            -
+              tag: Application
+              value: 'VEEAM Backup & Recovery - Copy job(s)'
+          triggers:
+            -
+              uuid: 78c15bc3278746bd9ef7ce6e38df0739
+              expression: 'nodata(/Template Veeam Backup And Replication/veeam.Results.BackupCopy,7200s)=1'
+              name: 'No data in ResultsBackupCopy'
+              priority: AVERAGE
+        -
+          uuid: fd220f9783f948b0a3ae18239e3515b8
+          name: 'Veeam BackupSync Jobs Status'
+          type: TRAP
+          key: veeam.Results.BackupSync
+          delay: '0'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Application
+              value: 'MASTER ITEMS'
+            -
+              tag: Application
+              value: Veeam
+            -
+              tag: Application
+              value: 'VEEAM Backup & Recovery - BackupSync Job(s)'
+          triggers:
+            -
+              uuid: df14f3dac4e64277a291a1c5bca79eba
+              expression: 'nodata(/Template Veeam Backup And Replication/veeam.Results.BackupSync,7200s)=1'
+              name: 'No data in ResultBackupSync'
+              priority: AVERAGE
+        -
+          uuid: 29b9808e5dda40518336e05e599b0e16
+          name: 'Veeam Tape Jobs Status'
+          type: TRAP
+          key: veeam.Results.BackupTape
+          delay: '0'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Application
+              value: 'MASTER ITEMS'
+            -
+              tag: Application
+              value: Veeam
+            -
+              tag: Application
+              value: 'VEEAM Backup & Recovery - Tape job(s)'
+          triggers:
+            -
+              uuid: 065c4a68c1924832981fa3eb92f068a2
+              expression: 'nodata(/Template Veeam Backup And Replication/veeam.Results.BackupTape,7200s)=1'
+              name: 'No data in ResultTapeJob'
+              priority: AVERAGE
       discovery_rules:
         -
           uuid: 502f3cd2ed25492181bab7466f2a42b7
           name: 'VEEAM Backup Jobs'
           type: DEPENDENT
-          key: Discovery.Backup.Jobs
+          key: Veeam.Discovery.Jobs.Backup
           delay: '0'
           lifetime: 1d
           item_prototypes:
@@ -158,7 +205,7 @@ zabbix_export:
               uuid: f5422798f7e74d5d9a6eb9b6da0f36db
               name: 'Last End Time {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.LastEndBackup[''{#JOBID}'',Backup]'
+              key: 'veeam.Backup.LastEnd[''{#JOBID}'']'
               delay: '0'
               units: unixtime
               preprocessing:
@@ -169,15 +216,15 @@ zabbix_export:
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '["'
+                    - '['
                     - ''
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '"]'
+                    - ']'
                     - ''
               master_item:
-                key: ResultsBackup
+                key: veeam.Results.Backup
               tags:
                 -
                   tag: Application
@@ -186,7 +233,7 @@ zabbix_export:
               uuid: 283d815551cb4d8497c068990c8af6c0
               name: 'Last run time {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.LastStartBackup[''{#JOBID}'',Backup]'
+              key: 'veeam.Backup.LastStart[''{#JOBID}'']'
               delay: '0'
               units: unixtime
               preprocessing:
@@ -197,15 +244,15 @@ zabbix_export:
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '["'
+                    - '['
                     - ''
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '"]'
+                    - ']'
                     - ''
               master_item:
-                key: ResultsBackup
+                key: veeam.Results.Backup
               tags:
                 -
                   tag: Application
@@ -214,7 +261,7 @@ zabbix_export:
               uuid: 3ff0e968577e447ea50f95f89f112ef8
               name: 'Progress Backup {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.ProgressBackup[''{#JOBID}'',Backup]'
+              key: 'veeam.Backup.Progress[''{#JOBID}'']'
               delay: '0'
               units: '%'
               preprocessing:
@@ -233,7 +280,7 @@ zabbix_export:
                     - ']'
                     - ''
               master_item:
-                key: ResultsBackup
+                key: veeam.Results.Backup
               tags:
                 -
                   tag: Application
@@ -242,7 +289,7 @@ zabbix_export:
               uuid: cd9422f61b5b4442ba082b1d380b08b5
               name: 'Last Reason {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.ReasonBackup[''{#JOBID}'',Backup]'
+              key: 'veeam.Backup.Reason[''{#JOBID}'']'
               delay: '0'
               trends: '0'
               value_type: TEXT
@@ -254,15 +301,15 @@ zabbix_export:
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '["'
+                    - '['
                     - ''
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '"]'
+                    - ']'
                     - ''
               master_item:
-                key: ResultsBackup
+                key: veeam.Results.Backup
               tags:
                 -
                   tag: Application
@@ -271,7 +318,7 @@ zabbix_export:
               uuid: 54a48ea95dd94058909c138da417ab2c
               name: 'Result backup {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.ResultBackup[''{#JOBID}'',Backup]'
+              key: 'veeam.Backup.Result[''{#JOBID}'',Backup]'
               delay: '0'
               value_type: FLOAT
               valuemap:
@@ -292,7 +339,7 @@ zabbix_export:
                     - ']'
                     - ''
               master_item:
-                key: ResultsBackup
+                key: veeam.Results.Backup
               tags:
                 -
                   tag: Application
@@ -301,7 +348,7 @@ zabbix_export:
               uuid: 145b69d1fa8e4fdf809b16fc66c20b9d
               name: 'Is Retry {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.RetryBackup[''{#JOBID}'',Backup]'
+              key: 'veeam.Backup.Retry[''{#JOBID}'']'
               delay: '0'
               trends: '0'
               value_type: TEXT
@@ -321,61 +368,22 @@ zabbix_export:
                     - ']'
                     - ''
               master_item:
-                key: ResultsBackup
+                key: veeam.Results.Backup
               tags:
                 -
                   tag: Application
                   value: 'VEEAM Backup & Recovery - Backup Job(s)'
           trigger_prototypes:
             -
-              uuid: f0f8182a6e8e4c4f8de0fc2d47c3e794
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])<0 and last(/Template Veeam Backup And Replication/data.ProgressBackup[''{#JOBID}'',Backup],#45)<100'
-              recovery_mode: RECOVERY_EXPRESSION
-              recovery_expression: 'last(/Template Veeam Backup And Replication/data.ProgressBackup[''{#JOBID}'',Backup])=100'
-              name: 'Backup {#JOBNAME} en cours > 8h'
-              priority: HIGH
-              description: '{#JOBREASON}'
-              tags:
-                -
-                  tag: VEEAM
-                -
-                  tag: 'VEEAM Backup Jobs'
-            -
-              uuid: f9d1d9b1823547fcb9b25429bb800f88
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=2 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","False")=1'
-              name: 'Backup {#JOBNAME} Error'
-              priority: HIGH
-              description: '{#JOBREASON}'
-              dependencies:
-                -
-                  name: 'Backup {#JOBNAME} Error (With Retry)'
-                  expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=2 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","True")=1'
-              tags:
-                -
-                  tag: VEEAM
-                -
-                  tag: 'VEEAM Backup Jobs'
-            -
-              uuid: 882b5f4c03f54eeb8a22b397a7c5f6e4
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=2 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","True")=1'
-              name: 'Backup {#JOBNAME} Error (With Retry)'
-              priority: HIGH
-              description: '{#JOBREASON}'
-              tags:
-                -
-                  tag: VEEAM
-                -
-                  tag: 'VEEAM Backup Jobs'
-            -
               uuid: af2b922277c54ed198e6559727a7cfb9
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","False")=1'
+              expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.Result[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/veeam.Backup.Retry[''{#JOBID}''],,"iregexp","False")=1'
               name: 'Backup {#JOBNAME} ended with Warning'
+              opdata: '{#JOBREASON}'
               priority: AVERAGE
-              description: '{#JOBREASON}'
               dependencies:
                 -
                   name: 'Backup {#JOBNAME} ended with Warning (With Retry)'
-                  expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","True")=1'
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.Result[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/veeam.Backup.Retry[''{#JOBID}''],,"iregexp","True")=1'
               tags:
                 -
                   tag: VEEAM
@@ -383,17 +391,349 @@ zabbix_export:
                   tag: 'VEEAM Backup Jobs'
             -
               uuid: 6383bfa6794c49e185d5c930d57c738f
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackup[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/data.RetryBackup[''{#JOBID}'',Backup],,"iregexp","True")=1'
+              expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.Result[''{#JOBID}'',Backup])=1 and find(/Template Veeam Backup And Replication/veeam.Backup.Retry[''{#JOBID}''],,"iregexp","True")=1'
               name: 'Backup {#JOBNAME} ended with Warning (With Retry)'
+              opdata: '{#JOBREASON}'
               priority: AVERAGE
-              description: '{#JOBREASON}'
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Jobs'
+            -
+              uuid: f9d1d9b1823547fcb9b25429bb800f88
+              expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.Result[''{#JOBID}'',Backup])=2 and find(/Template Veeam Backup And Replication/veeam.Backup.Retry[''{#JOBID}''],,"iregexp","False")=1'
+              name: 'Backup {#JOBNAME} Error'
+              opdata: '{#JOBREASON}'
+              priority: HIGH
+              dependencies:
+                -
+                  name: 'Backup {#JOBNAME} Error (With Retry)'
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.Result[''{#JOBID}'',Backup])=2 and find(/Template Veeam Backup And Replication/veeam.Backup.Retry[''{#JOBID}''],,"iregexp","True")=1'
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Jobs'
+            -
+              uuid: 882b5f4c03f54eeb8a22b397a7c5f6e4
+              expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.Result[''{#JOBID}'',Backup])=2 and find(/Template Veeam Backup And Replication/veeam.Backup.Retry[''{#JOBID}''],,"iregexp","True")=1'
+              name: 'Backup {#JOBNAME} Error (With Retry)'
+              opdata: '{#JOBREASON}'
+              priority: HIGH
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Jobs'
+            -
+              uuid: f0f8182a6e8e4c4f8de0fc2d47c3e794
+              expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.LastStart[''{#JOBID}''])+{$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}*3600<now() and last(/Template Veeam Backup And Replication/veeam.Backup.Progress[''{#JOBID}''])<100'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Template Veeam Backup And Replication/veeam.Backup.LastStart[''{#JOBID}''])+{$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}*3600>now() or last(/Template Veeam Backup And Replication/veeam.Backup.Progress[''{#JOBID}''])=100'
+              name: 'Backup {#JOBNAME} in progress > {$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}h'
+              priority: HIGH
               tags:
                 -
                   tag: VEEAM
                 -
                   tag: 'VEEAM Backup Jobs'
           master_item:
-            key: ResultsBackup
+            key: veeam.Results.Backup
+          preprocessing:
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBID
+                - '{#JOBID}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBNAME
+                - '{#JOBNAME}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBRESULT
+                - '{#JOBRESULT}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBRETRY
+                - '{#JOBRETRY}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBREASON
+                - '{#JOBREASON}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBSTART
+                - '{#JOBSTART}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBEND
+                - '{#JOBEND}'
+        -
+          uuid: 3eb38abbae284fcabcb654312a5b2f67
+          name: 'VEEAM Backup Copy Jobs'
+          type: DEPENDENT
+          key: Veeam.Discovery.Jobs.BackupCopy
+          delay: '0'
+          lifetime: 1d
+          item_prototypes:
+            -
+              uuid: c1556a9c36b04ba7b9756983d9567ba4
+              name: 'Last End Time {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupCopy.LastEnd[''{#JOBID}'']'
+              delay: '0'
+              value_type: FLOAT
+              units: unixtime
+              valuemap:
+                name: VbrJsonResult
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBEND'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupCopy
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Backup Copy Job(s)'
+            -
+              uuid: 1591812146754dbaae46ebcac83e5ee9
+              name: 'Last run time {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupCopy.LastStart[''{#JOBID}'']'
+              delay: '0'
+              units: unixtime
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID== "{#JOBID}")].JOBSTART'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupCopy
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Backup Copy Job(s)'
+            -
+              uuid: 6f5977aaa0da4f128bf6eb8621f369b3
+              name: 'Progress Backup {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupCopy.Progress[''{#JOBID}'']'
+              delay: '0'
+              units: '%'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID== "{#JOBID}")].JOBPROGRESS'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupCopy
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Backup Copy Job(s)'
+            -
+              uuid: bb895deeaa67440ba45806caf0c0f79e
+              name: 'Last Reason {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupCopy.Reason[''{#JOBID}'']'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID== "{#JOBID}")].JOBREASON'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupCopy
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Backup Copy Job(s)'
+            -
+              uuid: 56a57b7ec604424599d52b65b9a6fb7d
+              name: 'Result backup {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupCopy.Result[''{#JOBID}'']'
+              delay: '0'
+              value_type: FLOAT
+              valuemap:
+                name: VbrJsonResult
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBRESULT'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupCopy
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Backup Copy Job(s)'
+            -
+              uuid: 9a6df4da5b6f4b92a90581b88db64063
+              name: 'Is Retry {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupCopy.Retry[''{#JOBID}'']'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID== "{#JOBID}")].JOBRETRY'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupCopy
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Backup Copy Job(s)'
+          trigger_prototypes:
+            -
+              uuid: 3875d3c7df7d4c20a25fdaeb36c29bbe
+              expression: 'last(/Template Veeam Backup And Replication/veeam.BackupCopy.Result[''{#JOBID}''])=1 and find(/Template Veeam Backup And Replication/veeam.BackupCopy.Retry[''{#JOBID}''],,"iregexp","False")=1'
+              name: 'Backup Copy {#JOBNAME} ended with Warning'
+              opdata: '{#JOBREASON}'
+              priority: WARNING
+              dependencies:
+                -
+                  name: 'Backup Copy {#JOBNAME} ended with Warning (With Retry)'
+                  expression: |
+                    last(/Template Veeam Backup And Replication/veeam.BackupCopy.Result['{#JOBID}'])=1 and
+                    find(/Template Veeam Backup And Replication/veeam.BackupCopy.Retry['{#JOBID}'],,"iregexp","True")=1
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Copy Jobs'
+            -
+              uuid: 6e84e63d3ff34d579218ee3aab1da4a7
+              expression: |
+                last(/Template Veeam Backup And Replication/veeam.BackupCopy.Result['{#JOBID}'])=1 and
+                find(/Template Veeam Backup And Replication/veeam.BackupCopy.Retry['{#JOBID}'],,"iregexp","True")=1
+              name: 'Backup Copy {#JOBNAME} ended with Warning (With Retry)'
+              opdata: '{#JOBREASON}'
+              priority: WARNING
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Copy Jobs'
+            -
+              uuid: b028b837940e48aa8c9d1eaab0ad1b85
+              expression: 'last(/Template Veeam Backup And Replication/veeam.BackupCopy.Result[''{#JOBID}''])=2 and find(/Template Veeam Backup And Replication/veeam.BackupCopy.Retry[''{#JOBID}''],,"iregexp","False")=1'
+              name: 'Backup Copy {#JOBNAME} Error'
+              opdata: '{#JOBREASON}'
+              priority: HIGH
+              dependencies:
+                -
+                  name: 'Backup Copy {#JOBNAME} Error (With Retry)'
+                  expression: |
+                    last(/Template Veeam Backup And Replication/veeam.BackupCopy.Result['{#JOBID}'])=2 and
+                    find(/Template Veeam Backup And Replication/veeam.BackupCopy.Retry['{#JOBID}'],,"iregexp","True")=1
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Copy Jobs'
+            -
+              uuid: b155af985e5d4289b307bb60e8b61fb5
+              expression: |
+                last(/Template Veeam Backup And Replication/veeam.BackupCopy.Result['{#JOBID}'])=2 and
+                find(/Template Veeam Backup And Replication/veeam.BackupCopy.Retry['{#JOBID}'],,"iregexp","True")=1
+              name: 'Backup Copy {#JOBNAME} Error (With Retry)'
+              opdata: '{#JOBREASON}'
+              priority: HIGH
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Copy Jobs'
+            -
+              uuid: ae89e8e65329453698d8dad5fccaa7fe
+              expression: 'last(/Template Veeam Backup And Replication/veeam.BackupCopy.LastStart[''{#JOBID}''])+{$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}*3600<now() and last(/Template Veeam Backup And Replication/veeam.BackupCopy.Progress[''{#JOBID}''])<100'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Template Veeam Backup And Replication/veeam.BackupCopy.LastStart[''{#JOBID}''])+{$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}*3600>now() or last(/Template Veeam Backup And Replication/veeam.BackupCopy.Progress[''{#JOBID}''])=100'
+              name: 'Backup Copy {#JOBNAME} in progress > {$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}h'
+              priority: HIGH
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM Backup Copy Jobs'
+          master_item:
+            key: veeam.Results.BackupCopy
           preprocessing:
             -
               type: STR_REPLACE
@@ -434,71 +774,71 @@ zabbix_export:
           uuid: 41e91c0df9c74d47b83df2a4a3af744c
           name: 'VEEAM BackupSync Jobs'
           type: DEPENDENT
-          key: DiscoveryBackupSyncJobs
+          key: Veeam.Discovery.Jobs.BackupSync
           delay: '0'
           lifetime: 1d
           item_prototypes:
             -
               uuid: ef4d71059d7f4f56b8d6c1c6ecfc7527
-              name: 'Last End Time {#JOBBSNAME}'
+              name: 'Last End Time {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.LastEndBackupSync[''{#JOBBSID}'',BackupSync]'
+              key: 'veeam.BackupSync.LastEnd[''{#JOBID}'']'
               delay: '0'
               units: unixtime
               preprocessing:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBBSID == "{#JOBBSID}")].JOBBSEND'
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBEND'
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '["'
+                    - '['
                     - ''
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '"]'
+                    - ']'
                     - ''
               master_item:
-                key: ResultsBackupSync
+                key: veeam.Results.BackupSync
               tags:
                 -
                   tag: Application
                   value: 'VEEAM Backup & Recovery - BackupSync Job(s)'
             -
               uuid: 0e2e8c11b4ed468c9b591b4e165a19cb
-              name: 'Last run time {#JOBBSNAME}'
+              name: 'Last run time {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.LastStartBackupSync[''{#JOBBSID}'',BackupSync]'
+              key: 'veeam.BackupSync.LastStart[''{#JOBID}'']'
               delay: '0'
               units: unixtime
               preprocessing:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBBSID == "{#JOBBSID}")].JOBBSSTART'
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBSTART'
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '["'
+                    - '['
                     - ''
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '"]'
+                    - ']'
                     - ''
               master_item:
-                key: ResultsBackupSync
+                key: veeam.Results.BackupSync
               tags:
                 -
                   tag: Application
                   value: 'VEEAM Backup & Recovery - BackupSync Job(s)'
             -
               uuid: f5f1f346c63c4e4493ad1dd3d89ce56b
-              name: 'Last Reason {#JOBBSNAME}'
+              name: 'Last Reason {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.ReasonBackupSync[''{#JOBBSID}'',BackupSync]'
+              key: 'veeam.BackupSync.Reason[''{#JOBID}'']'
               delay: '0'
               trends: '0'
               value_type: TEXT
@@ -506,28 +846,28 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBBSID == "{#JOBBSID}")].JOBBSREASON'
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBREASON'
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '["'
+                    - '['
                     - ''
                 -
                   type: STR_REPLACE
                   parameters:
-                    - '"]'
+                    - ']'
                     - ''
               master_item:
-                key: ResultsBackupSync
+                key: veeam.Results.BackupSync
               tags:
                 -
                   tag: Application
                   value: 'VEEAM Backup & Recovery - BackupSync Job(s)'
             -
               uuid: f53b8c40b6724eeba1d82a4c79943460
-              name: 'Result BackupSync {#JOBBSNAME}'
+              name: 'Result BackupSync {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.ResultBackupSync[''{#JOBBSID}'',BackupSync]'
+              key: 'veeam.BackupSync.Result[''{#JOBID}'']'
               delay: '0'
               history: 30d
               value_type: FLOAT
@@ -537,7 +877,7 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBBSID == "{#JOBBSID}")].JOBBSRESULT'
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBRESULT'
                 -
                   type: STR_REPLACE
                   parameters:
@@ -549,16 +889,16 @@ zabbix_export:
                     - '['
                     - ''
               master_item:
-                key: ResultsBackupSync
+                key: veeam.Results.BackupSync
               tags:
                 -
                   tag: Application
                   value: 'VEEAM Backup & Recovery - BackupSync Job(s)'
             -
               uuid: 31facd86f65c4e8b9a2f2e568914dd47
-              name: 'Is Retry {#JOBBSNAME}'
+              name: 'Is Retry {#JOBNAME}'
               type: DEPENDENT
-              key: 'data.RetryBackupSync[''{#JOBBSID}'',BackupSync]'
+              key: 'veeam.BackupSync.Retry[''{#JOBID}'']'
               delay: '0'
               trends: '0'
               value_type: TEXT
@@ -566,7 +906,7 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBBSID == "{#JOBBSID}")].JOBBSRETRY'
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBRETRY'
                 -
                   type: STR_REPLACE
                   parameters:
@@ -578,48 +918,22 @@ zabbix_export:
                     - ']'
                     - ''
               master_item:
-                key: ResultsBackupSync
+                key: veeam.Results.BackupSync
               tags:
                 -
                   tag: Application
                   value: 'VEEAM Backup & Recovery - BackupSync Job(s)'
           trigger_prototypes:
             -
-              uuid: 7b917312de1d4c95b90c1e64e4d8f9d1
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupSync[''{#JOBBSID}'',BackupSync])=2 and find(/Template Veeam Backup And Replication/data.RetryBackupSync[''{#JOBBSID}'',BackupSync],,"iregexp","False")=1'
-              name: 'BackupSync {#JOBBSNAME} Error'
-              priority: HIGH
-              description: '{#JOBBSREASON}'
-              dependencies:
-                -
-                  name: 'BackupSync {#JOBBSNAME} Error (With Retry)'
-                  expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupSync[''{#JOBBSID}'',BackupSync])=2 and find(/Template Veeam Backup And Replication/data.RetryBackupSync[''{#JOBBSID}'',BackupSync],,"iregexp","True")=1'
-              tags:
-                -
-                  tag: VEEAM
-                -
-                  tag: 'VEEAM BackupSync Jobs'
-            -
-              uuid: eb9dbc9b40f5487b870500f6e6501cdf
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupSync[''{#JOBBSID}'',BackupSync])=2 and find(/Template Veeam Backup And Replication/data.RetryBackupSync[''{#JOBBSID}'',BackupSync],,"iregexp","True")=1'
-              name: 'BackupSync {#JOBBSNAME} Error (With Retry)'
-              priority: HIGH
-              description: '{#JOBBSREASON}'
-              tags:
-                -
-                  tag: VEEAM
-                -
-                  tag: 'VEEAM BackupSync Jobs'
-            -
               uuid: 513eecb3423448b891146327b8149c18
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupSync[''{#JOBBSID}'',BackupSync])=1 and find(/Template Veeam Backup And Replication/data.RetryBackupSync[''{#JOBBSID}'',BackupSync],,"iregexp","False")=1'
+              expression: 'last(/Template Veeam Backup And Replication/veeam.BackupSync.Result[''{#JOBID}''])=1 and find(/Template Veeam Backup And Replication/veeam.BackupSync.Retry[''{#JOBID}''],,"iregexp","False")=1'
               name: 'BackupSync {#JOBBSNAME} ended with Warning'
+              opdata: '{#JOBREASON}'
               priority: AVERAGE
-              description: '{#JOBBSREASON}'
               dependencies:
                 -
                   name: 'BackupSync {#JOBBSNAME} ended with Warning (With retry)'
-                  expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupSync[''{#JOBBSID}'',BackupSync])=1 and find(/Template Veeam Backup And Replication/data.RetryBackupSync[''{#JOBBSID}'',BackupSync],,"iregexp","True")=1'
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.BackupSync.Result[''{#JOBID}''])=1 and find(/Template Veeam Backup And Replication/veeam.BackupSync.Retry[''{#JOBID}''],,"iregexp","True")=1'
               tags:
                 -
                   tag: VEEAM
@@ -627,58 +941,276 @@ zabbix_export:
                   tag: 'VEEAM BackupSync Jobs'
             -
               uuid: 0afc1627f19447ea98e0edd8cdc8fcee
-              expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupSync[''{#JOBBSID}'',BackupSync])=1 and find(/Template Veeam Backup And Replication/data.RetryBackupSync[''{#JOBBSID}'',BackupSync],,"iregexp","True")=1'
+              expression: 'last(/Template Veeam Backup And Replication/veeam.BackupSync.Result[''{#JOBID}''])=1 and find(/Template Veeam Backup And Replication/veeam.BackupSync.Retry[''{#JOBID}''],,"iregexp","True")=1'
               name: 'BackupSync {#JOBBSNAME} ended with Warning (With retry)'
+              opdata: '{#JOBREASON}'
               priority: AVERAGE
-              description: '{#JOBBSREASON}'
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM BackupSync Jobs'
+            -
+              uuid: 7b917312de1d4c95b90c1e64e4d8f9d1
+              expression: 'last(/Template Veeam Backup And Replication/veeam.BackupSync.Result[''{#JOBID}''])=2 and find(/Template Veeam Backup And Replication/veeam.BackupSync.Retry[''{#JOBID}''],,"iregexp","False")=1'
+              name: 'BackupSync {#JOBBSNAME} Error'
+              opdata: '{#JOBREASON}'
+              priority: HIGH
+              dependencies:
+                -
+                  name: 'BackupSync {#JOBBSNAME} Error (With Retry)'
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.BackupSync.Result[''{#JOBID}''])=2 and find(/Template Veeam Backup And Replication/veeam.BackupSync.Retry[''{#JOBID}''],,"iregexp","True")=1'
+              tags:
+                -
+                  tag: VEEAM
+                -
+                  tag: 'VEEAM BackupSync Jobs'
+            -
+              uuid: eb9dbc9b40f5487b870500f6e6501cdf
+              expression: 'last(/Template Veeam Backup And Replication/veeam.BackupSync.Result[''{#JOBID}''])=2 and find(/Template Veeam Backup And Replication/veeam.BackupSync.Retry[''{#JOBID}''],,"iregexp","True")=1'
+              name: 'BackupSync {#JOBBSNAME} Error (With Retry)'
+              opdata: '{#JOBREASON}'
+              priority: HIGH
               tags:
                 -
                   tag: VEEAM
                 -
                   tag: 'VEEAM BackupSync Jobs'
           master_item:
-            key: ResultsBackupSync
+            key: veeam.Results.BackupSync
           preprocessing:
             -
               type: STR_REPLACE
               parameters:
-                - JOBBSID
-                - '{#JOBBSID}'
+                - JOBID
+                - '{#JOBID}'
             -
               type: STR_REPLACE
               parameters:
-                - JOBBSNAME
-                - '{#JOBBSNAME}'
+                - JOBNAME
+                - '{#JOBNAME}'
             -
               type: STR_REPLACE
               parameters:
-                - JOBBSRESULT
-                - '{#JOBBSRESULT}'
+                - JOBRESULT
+                - '{#JOBRESULT}'
             -
               type: STR_REPLACE
               parameters:
-                - JOBBSRETRY
-                - '{#JOBBSRETRY}'
+                - JOBRETRY
+                - '{#JOBRETRY}'
             -
               type: STR_REPLACE
               parameters:
-                - JOBBSREASON
-                - '{#JOBBSREASON}'
+                - JOBREASON
+                - '{#JOBREASON}'
             -
               type: STR_REPLACE
               parameters:
-                - JOBBSSTART
-                - '{#JOBBSSTART}'
+                - JOBSTART
+                - '{#JOBSTART}'
             -
               type: STR_REPLACE
               parameters:
-                - JOBBSEND
-                - '{#JOBBSEND}'
+                - JOBEND
+                - '{#JOBEND}'
+        -
+          uuid: 9462698063e149efac4663fc53d15cea
+          name: 'VEEAM Tape jobs'
+          type: DEPENDENT
+          key: Veeam.Discovery.Jobs.Tape
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            -
+              uuid: 6fa0a5cb1da24cfe81d1564d08712691
+              name: 'Last End Time {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupTape.LastEnd[''{#JOBID}'']'
+              delay: '0'
+              units: unixtime
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBEND'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupTape
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Tape job(s)'
+            -
+              uuid: 9844cc18f3d14544a00a7ccb356a19df
+              name: 'Last run time  {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupTape.LastStart[''{#JOBID}'']'
+              delay: '0'
+              units: unixtime
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBSTART'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupTape
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Tape job(s)'
+            -
+              uuid: 6d44f2662fd549dab015483983f5cca3
+              name: 'Last Reason {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupTape.Reason[''{#JOBID}'']'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBREASON'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupTape
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Tape job(s)'
+            -
+              uuid: 96a4e5d45c484ffc8396167362e892e8
+              name: 'Result backup {#JOBNAME}'
+              type: DEPENDENT
+              key: 'veeam.BackupTape.Result[''{#JOBID}'']'
+              delay: '0'
+              history: 30d
+              trends: 90d
+              value_type: FLOAT
+              valuemap:
+                name: VbrJsonResult
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.JOBID == "{#JOBID}")].JOBRESULT'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+              master_item:
+                key: veeam.Results.BackupTape
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Backup & Recovery - Tape job(s)'
+              trigger_prototypes:
+                -
+                  uuid: 5eb948cd11854cf9beeb8586ae4828e5
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.BackupTape.Result[''{#JOBID}''])=1'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template Veeam Backup And Replication/veeam.BackupTape.Result[''{#JOBID}''])=0'
+                  name: 'Backup Tape {#JOBTAPENAME} ended with Warning'
+                  opdata: '{#JOBTAPEREASON}'
+                  priority: AVERAGE
+                  description: '{#JOBTAPEREASON}'
+                  tags:
+                    -
+                      tag: VEEAM
+                    -
+                      tag: 'VEEAM Tape jobs'
+                -
+                  uuid: e34ea68fadfb4b90ac5f357ccac6e4ca
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.BackupTape.Result[''{#JOBID}''])=2'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template Veeam Backup And Replication/veeam.BackupTape.Result[''{#JOBID}''])=0'
+                  name: 'Backup Tape {#JOBTAPENAME} Error'
+                  opdata: '{#JOBTAPEREASON}'
+                  priority: HIGH
+                  description: '{#JOBTAPEREASON}'
+                  tags:
+                    -
+                      tag: VEEAM
+                    -
+                      tag: 'VEEAM Tape jobs'
+          master_item:
+            key: veeam.Results.BackupTape
+          preprocessing:
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBID
+                - '{#JOBID}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBNAME
+                - '{#JOBNAME}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBRESULT
+                - '{#JOBRESULT}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBRETRY
+                - '{#JOBRETRY}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBREASON
+                - '{#JOBREASON}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBSTART
+                - '{#JOBSTART}'
+            -
+              type: STR_REPLACE
+              parameters:
+                - JOBEND
+                - '{#JOBEND}'
         -
           uuid: 9d3543413aeb4bc582b44cf9d03b0787
           name: 'VEEAM Repository'
           type: DEPENDENT
-          key: DiscoveryRepo
+          key: Veeam.Discovery.Repo
           delay: '0'
           lifetime: 7d
           item_prototypes:
@@ -686,7 +1218,7 @@ zabbix_export:
               uuid: f7c95c54aadc4a53862a4de689b42cf9
               name: 'Total space repository {#REPONAME}'
               type: DEPENDENT
-              key: 'data.RepoInfo[''{#REPONAME}'',Capacity]'
+              key: 'veeam.RepoInfo.Capacity[''{#REPONAME}'']'
               delay: '0'
               history: 30d
               trends: 90d
@@ -707,7 +1239,7 @@ zabbix_export:
                     - '['
                     - ''
               master_item:
-                key: RepoInfo
+                key: veeam.Repo.Info
               tags:
                 -
                   tag: Application
@@ -716,7 +1248,7 @@ zabbix_export:
               uuid: 288ba9353a394ef3adb0076483b75ea4
               name: 'Remaining space repository {#REPONAME}'
               type: DEPENDENT
-              key: 'data.RepoInfo[''{#REPONAME}'',FreeSpace]'
+              key: 'veeam.RepoInfo.FreeSpace[''{#REPONAME}'']'
               delay: '0'
               history: 30d
               trends: 90d
@@ -737,7 +1269,64 @@ zabbix_export:
                     - ']'
                     - ''
               master_item:
-                key: RepoInfo
+                key: veeam.Repo.Info
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Repository'
+            -
+              uuid: 6a38e3e0544d4ef083ce36a8cc6a5862
+              name: 'Out of date {#REPONAME}'
+              type: DEPENDENT
+              key: 'veeam.RepoInfo.OutOfDate[''{#REPONAME}'']'
+              delay: '0'
+              history: 30d
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[?(@.REPONAME == "{#REPONAME}")].REPOOUTOFDATE'
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - ']'
+                    - ''
+                -
+                  type: STR_REPLACE
+                  parameters:
+                    - '['
+                    - ''
+                -
+                  type: BOOL_TO_DECIMAL
+                  parameters:
+                    - ''
+              master_item:
+                key: veeam.Repo.Info
+              tags:
+                -
+                  tag: Application
+                  value: 'VEEAM Repository'
+              trigger_prototypes:
+                -
+                  uuid: c45376c7d61f47e4b7c30482568b1d76
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.RepoInfo.OutOfDate[''{#REPONAME}''])=1'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template Veeam Backup And Replication/veeam.RepoInfo.OutOfDate[''{#REPONAME}''])=0'
+                  name: 'Repository {#REPONAME} information is out of date'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: VEEAM
+                    -
+                      tag: 'VEEAM Repository'
+            -
+              uuid: 351fcc7e69b1472b8a09a02470082e13
+              name: 'Percent free space on {#REPONAME}'
+              type: CALCULATED
+              key: 'veeam.RepoInfo.PercentFree[''{#REPONAME}'']'
+              value_type: FLOAT
+              units: '%'
+              params: 'last(//veeam.RepoInfo.FreeSpace[''{#REPONAME}''])/last(//veeam.RepoInfo.Capacity[''{#REPONAME}''])*100'
               tags:
                 -
                   tag: Application
@@ -745,8 +1334,9 @@ zabbix_export:
               trigger_prototypes:
                 -
                   uuid: 6788ff77c1d34b34b4eeec6805c5d98b
-                  expression: 'last(/Template Veeam Backup And Replication/data.RepoInfo[''{#REPONAME}'',FreeSpace])<2147483648'
-                  name: 'Less than 2Gb remaining on the repository {#NAME}'
+                  expression: 'last(/Template Veeam Backup And Replication/veeam.RepoInfo.PercentFree[''{#REPONAME}''])<{$VEEAM_REPO_FREE_WARN}'
+                  name: 'Less than {$VEEAM_REPO_FREE_WARN}% remaining on the repository {#REPONAME}'
+                  opdata: 'Current value: {ITEM.LASTVALUE1}'
                   priority: HIGH
                   tags:
                     -
@@ -754,6 +1344,15 @@ zabbix_export:
                     -
                       tag: 'VEEAM Repository'
           graph_prototypes:
+            -
+              uuid: 36f1adb2dd3c46648799202f4cae3e14
+              name: 'Percent free repository {#REPONAME}'
+              graph_items:
+                -
+                  color: 1A7C11
+                  item:
+                    host: 'Template Veeam Backup And Replication'
+                    key: 'veeam.RepoInfo.PercentFree[''{#REPONAME}'']'
             -
               uuid: 30818fc98c734dc18c88d91c0f0c829a
               name: 'Remaining repository space {#REPONAME}'
@@ -763,9 +1362,9 @@ zabbix_export:
                   color: 1A7C11
                   item:
                     host: 'Template Veeam Backup And Replication'
-                    key: 'data.RepoInfo[''{#REPONAME}'',FreeSpace]'
+                    key: 'veeam.RepoInfo.FreeSpace[''{#REPONAME}'']'
           master_item:
-            key: RepoInfo
+            key: veeam.Repo.Info
           preprocessing:
             -
               type: STR_REPLACE
@@ -782,200 +1381,22 @@ zabbix_export:
               parameters:
                 - REPOCAPACITY
                 - '{#REPOCAPACITY}'
-        -
-          uuid: 9462698063e149efac4663fc53d15cea
-          name: 'VEEAM Tape jobs'
-          type: DEPENDENT
-          key: DiscoveryTapeJobs
-          delay: '0'
-          lifetime: 7d
-          item_prototypes:
-            -
-              uuid: 6fa0a5cb1da24cfe81d1564d08712691
-              name: 'Last End Time {#JOBTAPENAME}'
-              type: DEPENDENT
-              key: 'data.LastEndBackupTape[''{#JOBTAPEID}'',BackupTape]'
-              delay: '0'
-              units: unixtime
-              preprocessing:
-                -
-                  type: JSONPATH
-                  parameters:
-                    - '$.[?(@.JOBTAPEID == "{#JOBTAPEID}")].JOBTAPEEND'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '["'
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '"]'
-                    - ''
-              master_item:
-                key: ResultsBackupTape
-              tags:
-                -
-                  tag: Application
-                  value: 'VEEAM Backup & Recovery - Tape job(s)'
-            -
-              uuid: 9844cc18f3d14544a00a7ccb356a19df
-              name: 'Last run time  {#JOBTAPENAME}'
-              type: DEPENDENT
-              key: 'data.LastStartBackupTape[''{#JOBTAPEID}'',BackupTape]'
-              delay: '0'
-              units: unixtime
-              preprocessing:
-                -
-                  type: JSONPATH
-                  parameters:
-                    - '$.[?(@.JOBTAPEID == "{#JOBTAPEID}")].JOBTAPESTART'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '["'
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '"]'
-                    - ''
-              master_item:
-                key: ResultsBackupTape
-              tags:
-                -
-                  tag: Application
-                  value: 'VEEAM Backup & Recovery - Tape job(s)'
-            -
-              uuid: 6d44f2662fd549dab015483983f5cca3
-              name: 'Last Reason {#JOBTAPENAME}'
-              type: DEPENDENT
-              key: 'data.ReasonBackupTape[''{#JOBTAPEID}'',BackupTape]'
-              delay: '0'
-              trends: '0'
-              value_type: TEXT
-              preprocessing:
-                -
-                  type: JSONPATH
-                  parameters:
-                    - '$.[?(@.JOBTAPEID == "{#JOBTAPEID}")].JOBTAPEREASON'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '["'
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '"]'
-                    - ''
-              master_item:
-                key: ResultsBackupTape
-              tags:
-                -
-                  tag: Application
-                  value: 'VEEAM Backup & Recovery - Tape job(s)'
-            -
-              uuid: 96a4e5d45c484ffc8396167362e892e8
-              name: 'Result backup {#JOBTAPENAME}'
-              type: DEPENDENT
-              key: 'data.ResultBackupTape[''{#JOBTAPEID}'',BackupTape]'
-              delay: '0'
-              history: 30d
-              trends: 90d
-              value_type: FLOAT
-              valuemap:
-                name: VbrJsonResult
-              preprocessing:
-                -
-                  type: JSONPATH
-                  parameters:
-                    - '$.[?(@.JOBTAPEID == "{#JOBTAPEID}")].JOBTAPERESULT'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
-              master_item:
-                key: ResultsBackupTape
-              tags:
-                -
-                  tag: Application
-                  value: 'VEEAM Backup & Recovery - Tape job(s)'
-              trigger_prototypes:
-                -
-                  uuid: e34ea68fadfb4b90ac5f357ccac6e4ca
-                  expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupTape[''{#JOBTAPEID}'',BackupTape])=2'
-                  recovery_mode: RECOVERY_EXPRESSION
-                  recovery_expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupTape[''{#JOBTAPEID}'',BackupTape])=0'
-                  name: 'Backup Tape {#JOBTAPENAME} Error'
-                  priority: HIGH
-                  description: '{#JOBTAPEREASON}'
-                  tags:
-                    -
-                      tag: VEEAM
-                    -
-                      tag: 'VEEAM Tape jobs'
-                -
-                  uuid: 5eb948cd11854cf9beeb8586ae4828e5
-                  expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupTape[''{#JOBTAPEID}'',BackupTape])=1'
-                  recovery_mode: RECOVERY_EXPRESSION
-                  recovery_expression: 'last(/Template Veeam Backup And Replication/data.ResultBackupTape[''{#JOBTAPEID}'',BackupTape])=0'
-                  name: 'Backup Tape {#JOBTAPENAME} ended with Warning'
-                  priority: AVERAGE
-                  description: '{#JOBTAPEREASON}'
-                  tags:
-                    -
-                      tag: VEEAM
-                    -
-                      tag: 'VEEAM Tape jobs'
-          master_item:
-            key: ResultsBackupTape
-          preprocessing:
             -
               type: STR_REPLACE
               parameters:
-                - JOBTAPEID
-                - '{#JOBTAPEID}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBTAPENAME
-                - '{#JOBTAPENAME}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBTAPERESULT
-                - '{#JOBTAPERESULT}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBTAPERETRY
-                - '{#JOBTAPERETRY}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBTAPEREASON
-                - '{#JOBTAPEREASON}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBTAPESTART
-                - '{#JOBTAPESTART}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBTAPEEND
-                - '{#JOBTAPEEND}'
+                - REPOOUTOFDATE
+                - '{#REPOOUTOFDATE}'
       tags:
         -
           tag: Application
           value: Veeam
+      macros:
+        -
+          macro: '{$VEEAM_JOB_HOURS_WARN}'
+          value: '8'
+        -
+          macro: '{$VEEAM_REPO_FREE_WARN}'
+          value: '20'
       valuemaps:
         -
           uuid: cf1d0998a2644d90a948725c37df5fbd
