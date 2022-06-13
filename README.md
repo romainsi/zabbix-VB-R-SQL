@@ -8,54 +8,33 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 
 ## Items
 
-  - Number of tasks jobs
+  - Total number of VEEAM jobs
   - Master Item for BackupJob, BackupSyncJob, BackupCopyJob, Repository Info, TapeJob
-
-## Discovery Jobs
-
-### 1. Veeam backup Jobs:
-  - Result of each jobs
-  - Progress of each jobs
-  - Last end time of each jobs
-  - Last run time of each jobs
-  - If failed Job : Last Reason
-  - If failed : Is retry ?
-
-### 2. Veeam backup Copy Jobs:
-  - Result of each jobs
-  - Progress of each jobs
-  - Last end time of each jobs
-  - Last run time of each jobs
-  - If failed Job : Last Reason
-  - If failed : Is retry ?
-
-### 3. Veeam Tape Jobs:
-  - Result of each jobs
-  - Last end time of each jobs
-  - Last run time of each jobs
-  - If failed Job : Last Reason
-
-### 4. Veeam BackupSync Jobs:
-  - Result of each jobs
-  - Progress of each jobs
-  - Last end time of each jobs
-  - Last run time of each jobs
-  - If failed Job : Last Reason
-  - If failed : Is retry ?
-
-### 5. Veeam Repository:
-  - Remaining space in repository for each repo
-  - Total space in repository for each repo
 
 ## Triggers
 
 - [WARNING] => No data in RepoInfo
-- [WARNING] => No data in ResultBackup
-- [WARNING] => No data in ResultBackupSync
-- [WARNING] => No data in ResultsBackupCopy
-- [WARNING] => No data in ResultTapeJob
+- [WARNING] => No data on Jobs
 
-### Discovery Veeam Jobs Backup&Copy
+
+## Discovery Jobs
+
+### Items discovery Veeam jobs Backup, Copy, Tape, BackupSync :
+  - Result
+  - Progress
+  - Last end time
+  - Last run time
+  - Last job duration
+  - If failed Job : Last Reason
+  - If failed : Is retry ?
+
+### Items discovery Veeam Repository:
+  - Remaining space in repository
+  - Total space in repository
+  - Percent free space
+  - Out of date
+
+### Triggers discovery Veeam jobs Backup, Copy, Tape, BackupSync :
 
 - [HIGH] => Job has FAILED
 - [HIGH] => Job has FAILED (With Retry)	
@@ -63,17 +42,7 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 - [AVERAGE] => Job has completed with warning (With Retry)	
 - [HIGH] => Job is still running (8 hours)
 
-### Discovery Veeam Tape Jobs
-- [HIGH] => Job has FAILED
-- [AVERAGE] => Job has completed with warning
-
-### Discovery Veeam BackupSync Jobs
-- [HIGH] => Job has FAILED
-- [HIGH] => Job has FAILED (With Retry)	
-- [AVERAGE] => Job has completed with warning
-- [AVERAGE] => Job has completed with warning (With Retry)	
-
-### Discovery Veeam Repository
+### Triggers discovery Veeam Repository :
 - [HIGH] => Less than 20% remaining on the repository
 - [HIGH] => Information is out of date
 
@@ -82,17 +51,17 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 1. Install the Zabbix agent 2 on your host (and verify you have add zabbix zabbix_sender in zabbix root path).
 2.  Connect to the veeam sql server, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" for permit to connect with TCP/IP
 3.  With SQL Server Management Studio : Create User/Pass with reader rights , permit to connect with local user in sql settings and specify the default database.  
-    With sqlcmd.exe :  
+    With sqlcmd.exe (Change password "CHANGEME" with something more secure) :  
 `USE [VeeamBackup]`  
 `CREATE LOGIN [zabbixveeam] WITH PASSWORD = N'CHANGEME', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;`  
 `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`  
 `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`  
 `GO`  
-4. In script, ajust variables line 30 to 37 to match your configuration
+4. In script, ajust variables line 33 to 40 to match your configuration
 5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
 6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf  
 7. Import Template_Veeam_Backup_And_Replication.yaml file into Zabbix.
-8. Associate "Template VEEAM Backup and Replication" to the host.
+8. Associate Template "VEEAM Backup and Replication" to the host.
 
 Ajust Zabbix Agent & Server/Proxy timeout for userparameter, you can use this powershell command to determine the execution time :  
 `(Measure-Command -Expression{ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "StartJobs"}).TotalSeconds`
