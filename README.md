@@ -9,7 +9,7 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 ## Items
 
   - Total number of VEEAM jobs
-  - Master Item for BackupJob, BackupSyncJob, BackupCopyJob, Repository Info, TapeJob
+  - Master Item for Veeam jobs and repository Informations
 
 ## Triggers
 
@@ -57,11 +57,12 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`  
 `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`  
 `GO`  
-4. In script, ajust variables line 33 to 40 to match your configuration
+4. In script, ajust variables line 56 to 63 to match your configuration
 5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
 6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf  
 7. Import Template_Veeam_Backup_And_Replication.yaml file into Zabbix.
-8. Associate Template "VEEAM Backup and Replication" to the host.
+8. Associate Template "VEEAM Backup and Replication" to the host.  
+NOTE: When importing the new template version on an existing installation please check all "Delete missing", except "Template linkage", to make sure the old items are deleted
 
 Ajust Zabbix Agent & Server/Proxy timeout for userparameter, you can use this powershell command to determine the execution time :  
 `(Measure-Command -Expression{ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "StartJobs"}).TotalSeconds`
