@@ -1,8 +1,7 @@
 <#
 .SYNOPSIS
-# zabbix_vbr_job
-# Author: Romainsi
-# Contributions: Antonio Oliveira (aholiveira)
+Query Veeam job information
+This script is intended for use with Zabbix > 6.X
 
 .DESCRIPTION
 Query Veeam job information
@@ -27,9 +26,33 @@ StartJobs - Sends all Veeam jobs to Zabbix
 TotalJob - The number of Veeam active jobs 
 
 .OUTPUTS
-None
+None. Information is directly sent to Zabbix agent using zabbix_sender.exe
+
+.EXAMPLE
+zabbix_vbr_jobs.ps1 StartJobs
+
+Description
+---------------------------------------
+Sends information about Veeam jobs and repository to Zabbix
+
+.EXAMPLE
+zabbix_vbr_jobs.ps1 TotalJob
+
+Description
+---------------------------------------
+Sends total number of active Veeam jobs to Zabbix
+
+.NOTES
+Created by   : Romainsi   https://github.com/romainsi
+Contributions: aholiveira https://github.com/aholiveira
+Version      : 2.4
+
+.LINK
+https://github.com/romainsi/zabbix-VB-R-SQL
+
 #>
 
+########### Adjust the following variables to match your configuration ###########
 $veeamserver = 'veeam.contoso.local'   # Machine name where Veeam is installed
 $SQLServer = 'sqlserver.contoso.local' # Database server where Veeam database is located. Change to sqlserver.contoso.local\InstanceName if you are running an SQL named instance
 $SQLIntegratedSecurity = $false        # Use Windows integrated security?
@@ -39,9 +62,19 @@ $SQLveeamdb = 'VeeamBackup'            # Name of Veeam database. VeeamBackup is 
 $pathzabbixsender = 'C:\Program Files\Zabbix Agent 2' # Location of the Zabbix agent
 $config = '.\zabbix_agent2.conf'                    # Zabbix configuration file (relative to the above path)
 
-########### DO NOT MODIFY BELOW
-$ITEM = [string]$args[0]
+<#
+Supported job types.
+You can add additional types by extending the variables below
+Look into Veeam database table [BJobs] to find more job types
+Both variables below should be changed otherwise the script might fail
+If using version 2.0 or higher of the Zabbix template new types added here are automatically used in Zabbix
+If you extend this, please inform the author so that the script can be extended
+#>
+
+# $jobtypes is used in SQL queries
 $jobTypes = "(0, 28, 51, 63)"
+
+# $typeNames is used in Get-JobInfo function the send the type name to Zabbix
 $typeNames = @{
     0  = "Job";
     28 = "Tape";
@@ -49,9 +82,21 @@ $typeNames = @{
     63 = "Copy";
 }
 
-# Get last job session for the given job name
-# @param name Job name to filter by
-# @param BackupSessions The sessions table from the SQL query
+########### DO NOT MODIFY BELOW ###########
+
+<#
+.SYNOPSIS
+Get last job session for the given job name
+
+.PARAMETER name 
+Job name to filter by
+
+.PARAMETER backupsessions
+The sessions table from the SQL query
+
+.OUTPUTS
+System.Object. An object with the information for the job session
+#>
 function Get-LastJob {
     [CmdletBinding()]
     Param (
@@ -60,7 +105,11 @@ function Get-LastJob {
         [Parameter(Mandatory = $true)]
         $backupsessions
     )
+
+    # Get most recent session information from the sessions data
     $lastsession = $backupsessions | Where-Object { $_.job_name -like "$name" } | Sort-Object creation_time -Descending | Select-Object -First 1
+
+    # Build the output object
     $obj = New-Object System.Object
     $obj | Add-Member -type NoteProperty -Name JobType -Value $lastsession.job_type
     $obj | Add-Member -type NoteProperty -Name JobName -Value $lastsession.job_name
@@ -70,8 +119,9 @@ function Get-LastJob {
     $obj | Add-Member -type NoteProperty -Name Progress -Value $lastsession.progress
     $obj | Add-Member -type NoteProperty -Name Retry -Value $lastsession.is_retry
 
-    # Get reason from the XML log or for the "reason" table column (XML log has more detail). 
-    # Use table column as a fallback
+    # Get reason for the job failure/warning
+    # We try to get from XML log since it usually has more detail
+    # Otherwise we use "reason" table column as a fallback
     $Log = (([Xml]$lastsession.log_xml).Root.Log | Where-Object { $_.Status -like 'EFailed' }).Title
     if ($Log.count -ge 2) {
         $obj | Add-Member -type NoteProperty -Name Reason -Value $Log[1]
@@ -85,8 +135,17 @@ function Get-LastJob {
     return $obj
 }
 
-# Build and return a SQL connection string
-# It uses the variables defined at the top of the script
+<#
+.SYNOPSIS
+Build and return a SQL connection string
+It uses the variables defined at the top of the script
+
+.INPUTS
+None. The function uses the variables defined at the top of the script
+
+.OUTPUTS
+System.String. A SQL connection string
+#>
 function Get-ConnectionString() {
     $builder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder
     $builder.Add("Data Source", $SQLServer)
@@ -98,8 +157,17 @@ function Get-ConnectionString() {
     return $builder.ConnectionString
 }
 
-# Opens a connection to the database
-# Retries if unsucessfull on the first try
+<#
+.SYNOPSIS
+Opens a connection to the database
+Retries if unsucessfull on the first try
+
+.INPUTS
+None
+
+.OUTPUTS
+System.String. A SQL connection string
+#>
 function Start-Connection() {
     $connectionString = Get-ConnectionString
 
@@ -108,7 +176,7 @@ function Start-Connection() {
     $connection.ConnectionString = $connectionString
     $connection.Open()
     if ($connection.State -notmatch "Open") {
-        # Retry connection
+        # Connection open failed. Wait and retry connection
         Start-Sleep -s 5
         $connection = New-Object System.Data.SqlClient.SqlConnection
         $connection.ConnectionString = $connectionString
@@ -117,43 +185,71 @@ function Start-Connection() {
     return $connection
 }
 
-# Runs a query against the database given the supplied query string
-# @param Command query string to run
-function QuerySql {
+<#
+.SYNOPSIS
+Runs a query against the database given the supplied query string
+
+.PARAMETER Command
+Query string to run
+
+.INPUTS
+None
+
+.OUTPUTS
+System.Data.DataTable. A datatable object on success or $null on failure
+#>
+function Get-SqlCommand {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
         [System.String]$Command
     )
 
-    $Connection = Start-Connection
-    $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
-    $SqlCmd.CommandText = $Command
-    $SqlCmd.Connection = $Connection
-    $SqlCmd.CommandTimeout = 0
-    $SqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter
-    $SqlAdapter.SelectCommand = $SqlCmd
-    $DataSet = New-Object System.Data.DataSet
-    $returnsql = $null
-    Try {
+    $Connection = $null
+    # Use try-catch to avoid exceptions if connection to SQL cannot be opened or data cannot be read
+    # It either returns the data read or $null on failure
+    try {
+        $Connection = Start-Connection
+        $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
+        $SqlCmd.CommandText = $Command
+        $SqlCmd.Connection = $Connection
+        $SqlCmd.CommandTimeout = 0
+        $SqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter
+        $SqlAdapter.SelectCommand = $SqlCmd
+        $DataSet = New-Object System.Data.DataSet
         $SqlAdapter.Fill($DataSet)
+        $retval = $DataSet.Tables[0]
     }
-    Catch {
-        $returnsql = $_
+    catch {
+        $retval = $null
+        # We output the error message. This gets sent to Zabbix.
+        Write-Host $_.Exception.Message
     }
-    $Connection.Close()
-
-    # Verify Error
-    if ($returnsql) {
-        write-host $returnsql
-        return
+    finally {
+        # Make sure the connection is closed
+        if ($null -ne $Connection) {
+            $Connection.Close()
+        }
     }
-
-    # Returns the first table from the dataset
-    return $DataSet.Tables[0]
+    return $retval
 }
 
-# Builds an object with the information for each job
+<#
+.SYNOPSIS
+Builds an object with the information for each job
+
+.PARAMETER item
+System.Object. An object containing job information
+
+.PARAMETER backupsessions
+System.Object. An object containing job session information
+
+.INPUTS
+None
+
+.OUTPUTS
+System.Object. An object with the job information with the tags used by the Zabbix template
+#>
 function Get-JobInfo {
     [CmdletBinding()]
     param (
@@ -163,72 +259,105 @@ function Get-JobInfo {
         [System.Object]$backupsessions
     )
 
-    #UTC time
-    [System.DateTime]$unixepoch = (get-date -date "01/01/1970 00:00:00Z")
-
     $Object = $null
     $job = Get-LastJob -Name $item.name -backupsessions $BackupSessions
-    if ($job) {
-        $Object = New-Object System.Object
-        $Object | Add-Member -type NoteProperty -Name JOBID -Value $item.id
-        $Object | Add-Member -type NoteProperty -Name JOBTYPEID -Value $job.JobType
-        $Object | Add-Member -type NoteProperty -Name JOBTYPENAME -Value $typeNames[$job.JobType]
-        $Object | Add-Member -type NoteProperty -Name JOBNAME -Value ([System.Net.WebUtility]::HtmlEncode($job.JobName))
-        $Object | Add-Member -type NoteProperty -Name JOBRESULT -Value $job.JobResult
-        $Object | Add-Member -type NoteProperty -Name JOBRETRY -Value $job.Retry
-        $Object | Add-Member -type NoteProperty -Name JOBREASON -Value ([System.Net.WebUtility]::HtmlEncode($job.Reason))
-        $Object | Add-Member -type NoteProperty -Name JOBPROGRESS -Value $job.Progress
-
-        # Convert datetimes to UTC to handle timezones correctly
-        $jobstart = $job.JobStart.ToUniversalTime()
-        $jobend = $job.JobEnd.ToUniversalTime()
-
-        # Handle empty dates
-        if ($jobstart -lt $unixepoch) {
-            $jobstart = $unixepoch.AddSeconds(-1)
-        }
-        if ($jobend -lt $unixepoch) {
-            $jobend = $unixepoch.AddSeconds(-1)
-        }
-
-        # Convert to unix timestamp
-        $Object | Add-Member -type NoteProperty -Name JOBSTART -Value ([int]((New-TimeSpan -Start $unixepoch -end $jobstart).TotalSeconds))
-        $Object | Add-Member -type NoteProperty -Name JOBEND -Value ([int]((New-TimeSpan -Start $unixepoch -end $jobend).TotalSeconds))
+    if (!$job) {
+        # Early return if there is no data
+        return $Object
     }
+
+    # Build the output object
+    $Object = New-Object System.Object
+    $Object | Add-Member -type NoteProperty -Name JOBID -Value $item.id
+    $Object | Add-Member -type NoteProperty -Name JOBTYPEID -Value $job.JobType
+    $Object | Add-Member -type NoteProperty -Name JOBTYPENAME -Value $typeNames[$job.JobType]
+    $Object | Add-Member -type NoteProperty -Name JOBNAME -Value ([System.Net.WebUtility]::HtmlEncode($job.JobName))
+    $Object | Add-Member -type NoteProperty -Name JOBRESULT -Value $job.JobResult
+    $Object | Add-Member -type NoteProperty -Name JOBRETRY -Value $job.Retry
+    $Object | Add-Member -type NoteProperty -Name JOBREASON -Value ([System.Net.WebUtility]::HtmlEncode($job.Reason))
+    $Object | Add-Member -type NoteProperty -Name JOBPROGRESS -Value $job.Progress
+
+    # Convert datetimes to UTC to handle timezones correctly
+    $jobstart = $job.JobStart.ToUniversalTime()
+    $jobend = $job.JobEnd.ToUniversalTime()
+
+    # Unix epoch to convert to unix timestamp
+    [System.DateTime]$unixepoch = (get-date -date "01/01/1970 00:00:00Z")
+
+    # Handle empty dates
+    # We make this one second less than $unixepoch.
+    # This makes the time calculations below return -1 to Zabbix, making the item "unsupported" while the job is running (or before it ran for the first time)
+    if ($jobstart -lt $unixepoch) {
+        $jobstart = $unixepoch.AddSeconds(-1)
+    }
+    if ($jobend -lt $unixepoch) {
+        $jobend = $unixepoch.AddSeconds(-1)
+    }
+
+    # Convert to unix timestamp - Seconds elapsed since unix epoch
+    $Object | Add-Member -type NoteProperty -Name JOBSTART -Value ([int]((New-TimeSpan -Start $unixepoch -end $jobstart).TotalSeconds))
+    $Object | Add-Member -type NoteProperty -Name JOBEND -Value ([int]((New-TimeSpan -Start $unixepoch -end $jobend).TotalSeconds))
+
     return $Object
 }
 
-# Queries Veeam's database to obtain information about all supported job types.
+<#
+.SYNOPSIS
+Queries Veeam's database to obtain information about all supported job types.
+
+.INPUTS
+None
+
+.OUTPUTS
+None. Data is converted to JSON and sent to Zabbix using zabbix_sender.exe
+#>
 function Get-AllJobsInfo() {
-    ## Get backup jobs session information
-    $BackupSessions = QuerySql -Command "SELECT * FROM [VeeamBackup].[dbo].[Backup.Model.JobSessions] 
+    # Get backup jobs session information
+    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [VeeamBackup].[dbo].[Backup.Model.JobSessions] 
         INNER JOIN [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions] 
         ON [VeeamBackup].[dbo].[Backup.Model.JobSessions].[id] = [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions].[id]
         WHERE job_type IN $jobTypes 
         ORDER BY creation_time DESC, job_type, job_name"
 
     # Get all active jobs
-    $BackupJobs = QuerySql -Command "SELECT id,[type],name,options FROM [VeeamBackup].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+    $BackupJobs = Get-SqlCommand -Command "SELECT id,[type],name,options FROM [VeeamBackup].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
 
     $return = @()
+    # Get information for each active job
     foreach ($job in $BackupJobs) {
         if (([Xml]$job.options).JobOptionsRoot.RunManually -like "False") {
             $obj = Get-JobInfo -item $job -backupsessions $BackupSessions
             $return += ($obj)
         }
     }
+
+    # Convert data to JSON
     $return = ConvertTo-Json -Compress -InputObject @($return)
     $return = $return -replace '"', '""'
     $return = '"' + $return + '"'
+    
+    # Send data to Zabbix
     Set-Location $pathzabbixsender
     .\zabbix_sender.exe -c $config -k veeam.Jobs.Info -o $return
 }
 
-# Queries WIM to obtain Veeam's repository information and sends data to zabbix
+<#
+.SYNOPSIS
+Queries WIM to obtain Veeam's repository information and sends data to zabbix
+
+.INPUTS
+None
+
+.OUTPUTS
+None. Data is converted to JSON and sent to Zabbix using zabbix_sender.exe
+#>
 function Get-RepoInfo() {
-    ## Get repository information from WIM
+
+    # Get data from WIM class
     $repoinfo = Get-CimInstance -Class Repository -ComputerName $veeamserver -Namespace ROOT\VeeamBS
+
     $return = @()
+    # Build the output object
     foreach ($item in $repoinfo) {
         $Object = New-Object System.Object
         $Object | Add-Member -type NoteProperty -Name REPONAME -Value ([System.Net.WebUtility]::HtmlEncode($item.NAME)) 
@@ -237,25 +366,43 @@ function Get-RepoInfo() {
         $Object | Add-Member -type NoteProperty -Name REPOOUTOFDATE -Value $item.OutOfDate
         $return += $Object
     }
+
+    # Convert data to JSON
     $return = ConvertTo-Json -Compress -InputObject @($return)
     $return = $return -replace '"', '""'
     $return = '"' + $return + '"'
+
+    # Send data to Zabbix
     Set-Location $pathzabbixsender
     .\zabbix_sender.exe -c $config -k veeam.Repo.Info -o $return
 }
 
-# Main program
-# Gets the requested information from Veeam
-switch ($ITEM) {
+<#
+.SYNOPSIS
+Main program
+Gets the requested information from Veeam
+
+.INPUTS
+None
+
+.OUTPUTS
+None. Requested data is directly sent to Zabbix using zabbix_sender.exe
+In case of an error a message is printed to standard output
+#>
+switch ([string]$args[0]) {
     "StartJobs" {
         Get-AllJobsInfo
         Get-RepoInfo
     }
     "TotalJob" {
-        $BackupJobs = QuerySql -Command "SELECT jobs.name FROM [VeeamBackup].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
-        Write-Host $BackupJobs.Rows.Count
+        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [VeeamBackup].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+        if ($null -ne $BackupJobs) {
+            Write-Host $BackupJobs.Rows.Count
+        }
     }
     default {
-        Write-Output "-- ERROR -- : Need an option !"
+        Write-Output "-- ERROR -- : Need an option  !"
+        Write-Output "Valid options are: StartJobs or TotalJob"
+        Write-Output "This script is not intended to be run directly but called by Zabbix."
     }
 }
