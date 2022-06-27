@@ -18,7 +18,7 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 
 ## Discovery Jobs
 
-### Items discovery Veeam jobs Backup, Copy, Tape, BackupSync
+### Items discovery Veeam jobs Backup, Replication, FileTape, Tape, BackupSync, Copy, RMAN, Agent
 
 - Result
 - Progress
