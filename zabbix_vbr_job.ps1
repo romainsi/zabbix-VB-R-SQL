@@ -45,7 +45,8 @@ Sends total number of active Veeam jobs to Zabbix
 .NOTES
 Created by   : Romainsi   https://github.com/romainsi
 Contributions: aholiveira https://github.com/aholiveira
-Version      : 2.4
+               xtonousou  https://github.com/xtonousou
+Version      : 2.5
 
 .LINK
 https://github.com/romainsi/zabbix-VB-R-SQL
