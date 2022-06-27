@@ -313,14 +313,14 @@ None. Data is converted to JSON and sent to Zabbix using zabbix_sender.exe
 #>
 function Get-AllJobsInfo() {
     # Get backup jobs session information
-    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [VeeamBackup].[dbo].[Backup.Model.JobSessions] 
-        INNER JOIN [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions] 
-        ON [VeeamBackup].[dbo].[Backup.Model.JobSessions].[id] = [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions].[id]
+    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [$SQLveeamdb].[dbo].[Backup.Model.JobSessions] 
+        INNER JOIN [$SQLveeamdb].[dbo].[Backup.Model.BackupJobSessions] 
+        ON [$SQLveeamdb].[dbo].[Backup.Model.JobSessions].[id] = [$SQLveeamdb].[dbo].[Backup.Model.BackupJobSessions].[id]
         WHERE job_type IN $jobTypes 
         ORDER BY creation_time DESC, job_type, job_name"
 
     # Get all active jobs
-    $BackupJobs = Get-SqlCommand -Command "SELECT id,[type],name,options FROM [VeeamBackup].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+    $BackupJobs = Get-SqlCommand -Command "SELECT id,[type],name,options FROM [$SQLveeamdb].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
 
     $return = @()
     # Get information for each active job
@@ -395,7 +395,7 @@ switch ([string]$args[0]) {
         Get-RepoInfo
     }
     "TotalJob" {
-        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [VeeamBackup].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [$SQLveeamdb].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
         if ($null -ne $BackupJobs) {
             Write-Host $BackupJobs.Rows.Count
         }
