@@ -73,7 +73,7 @@ If you extend this, please inform the author so that the script can be extended
 #>
 
 # $jobtypes is used in SQL queries
-$jobTypes = "(0, 1, 24, 28, 51, 63, 4030, 12000)"
+$jobTypes = "(0, 1, 24, 28, 51, 63, 12000)"
 
 # $typeNames is used in Get-JobInfo function the send the type name to Zabbix
 $typeNames = @{
@@ -83,7 +83,6 @@ $typeNames = @{
     28 = "Tape";
     51 = "Sync";
     63 = "Copy";
-    4030 = "RMAN";
     12000 = "Agent";
 }
 

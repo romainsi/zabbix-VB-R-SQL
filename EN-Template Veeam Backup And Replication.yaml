@@ -781,8 +781,5 @@ zabbix_export:
               value: '63'
               newvalue: Copy
             -
-              value: '4030'
-              newvalue: RMAN
-            -
               value: '12000'
               newvalue: Agent
