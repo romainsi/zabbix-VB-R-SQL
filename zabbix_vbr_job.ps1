@@ -22,18 +22,26 @@ GO
 
 .INPUTS
 The script takes an unnamed single argument which specifies the information to supply
-StartJobs - Sends all Veeam jobs to Zabbix
+RepoInfo - Get repository information
+JobsInfo - Get job information
 TotalJob - The number of Veeam active jobs 
 
 .OUTPUTS
 None. Information is directly sent to Zabbix agent using zabbix_sender.exe
 
 .EXAMPLE
-zabbix_vbr_jobs.ps1 StartJobs
+zabbix_vbr_jobs.ps1 RepoInfo
 
 Description
 ---------------------------------------
-Sends information about Veeam jobs and repository to Zabbix
+Gets information about Veeam repository
+
+.EXAMPLE
+zabbix_vbr_jobs.ps1 JobsInfo
+
+Description
+---------------------------------------
+Gets information about Veeam jobs
 
 .EXAMPLE
 zabbix_vbr_jobs.ps1 TotalJob
@@ -46,13 +54,12 @@ Sends total number of active Veeam jobs to Zabbix
 Created by   : Romainsi   https://github.com/romainsi
 Contributions: aholiveira https://github.com/aholiveira
                xtonousou  https://github.com/xtonousou
-Version      : 2.5
+Version      : 2.6
 
 .LINK
 https://github.com/romainsi/zabbix-VB-R-SQL
 
 #>
-
 ########### Adjust the following variables to match your configuration ###########
 $veeamserver = 'veeam.contoso.local'   # Machine name where Veeam is installed
 $SQLServer = 'sqlserver.contoso.local' # Database server where Veeam database is located. Change to sqlserver.contoso.local\InstanceName if you are running an SQL named instance
@@ -60,8 +67,6 @@ $SQLIntegratedSecurity = $false        # Use Windows integrated security?
 $SQLuid = 'zabbixveeam'                # SQL Username when using SQL Authentication - ignored if using Integrated security
 $SQLpwd = 'CHANGEME'                   # SQL user password
 $SQLveeamdb = 'VeeamBackup'            # Name of Veeam database. VeeamBackup is the default
-$pathzabbixsender = 'C:\Program Files\Zabbix Agent 2' # Location of the Zabbix agent
-$config = '.\zabbix_agent2.conf'                    # Zabbix configuration file (relative to the above path)
 
 <#
 Supported job types.
@@ -73,71 +78,21 @@ If you extend this, please inform the author so that the script can be extended
 #>
 
 # $jobtypes is used in SQL queries
-$jobTypes = "(0, 1, 24, 28, 51, 63, 12000)"
+$jobTypes = "(0, 1, 2, 28, 51, 63, 12002, 12003)"
 
 # $typeNames is used in Get-JobInfo function the send the type name to Zabbix
 $typeNames = @{
-    0  = "Job";
-    1  = "Replication";
-    24 = "FileTape";
-    28 = "Tape";
-    51 = "Sync";
-    63 = "Copy";
-    12000 = "Agent";
+    0     = "Job";
+    1     = "Replication";
+    2     = "File";
+    28    = "Tape";
+    51    = "Sync";
+    63    = "Copy";
+    12002 = "Agent backup policy";
+    12003 = "Agent backup job";
 }
 
 ########### DO NOT MODIFY BELOW ###########
-
-<#
-.SYNOPSIS
-Get last job session for the given job name
-
-.PARAMETER name 
-Job name to filter by
-
-.PARAMETER backupsessions
-The sessions table from the SQL query
-
-.OUTPUTS
-System.Object. An object with the information for the job session
-#>
-function Get-LastJob {
-    [CmdletBinding()]
-    Param (
-        [Parameter(Mandatory = $true)]
-        $name,
-        [Parameter(Mandatory = $true)]
-        $backupsessions
-    )
-
-    # Get most recent session information from the sessions data
-    $lastsession = $backupsessions | Where-Object { $_.job_name -like "$name" } | Sort-Object creation_time -Descending | Select-Object -First 1
-
-    # Build the output object
-    $obj = New-Object System.Object
-    $obj | Add-Member -type NoteProperty -Name JobType -Value $lastsession.job_type
-    $obj | Add-Member -type NoteProperty -Name JobName -Value $lastsession.job_name
-    $obj | Add-Member -type NoteProperty -Name JobResult -Value $lastsession.result
-    $obj | Add-Member -type NoteProperty -Name JobStart -Value $lastsession.creation_time
-    $obj | Add-Member -type NoteProperty -Name JobEnd -Value $lastsession.end_time
-    $obj | Add-Member -type NoteProperty -Name Progress -Value $lastsession.progress
-    $obj | Add-Member -type NoteProperty -Name Retry -Value $lastsession.is_retry
-
-    # Get reason for the job failure/warning
-    # We try to get from XML log since it usually has more detail
-    # Otherwise we use "reason" table column as a fallback
-    $Log = (([Xml]$lastsession.log_xml).Root.Log | Where-Object { $_.Status -like 'EFailed' }).Title
-    if ($Log.count -ge 2) {
-        $obj | Add-Member -type NoteProperty -Name Reason -Value $Log[1]
-    }
-    if ($Log.count -lt 2 -and $Log.count -gt 0) {
-        $obj | Add-Member -type NoteProperty -Name Reason -Value $Log
-    }
-    if (!$Log) {
-        $obj | Add-Member -type NoteProperty -Name Reason -Value $lastsession.reason
-    }
-    return $obj
-}
 
 <#
 .SYNOPSIS
@@ -240,10 +195,43 @@ function Get-SqlCommand {
 
 <#
 .SYNOPSIS
+Convert to unix timestamp - Seconds elapsed since unix epoch
+
+.PARAMETER date
+System.DateTime. The reference date to convert to unix timestamp
+
+.INPUTS
+None
+
+.OUTPUTS
+System.Int. The converted date to unix timestamp or -1 if date was before the epoch
+#>
+function ConvertTo-Unixtimestamp {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.DateTime]$date
+    )
+    # Unix epoch
+    [System.DateTime]$unixepoch = (get-date -date "01/01/1970 00:00:00Z")
+
+    # Handle empty dates
+    # We make this one second less than $unixepoch.
+    # This makes the time calculations below return -1 to Zabbix, making the item "unsupported" while the job is running (or before it ran for the first time)
+    if ($null -eq $date -or $date -lt $unixepoch) {
+        $date = $unixepoch.AddSeconds(-1);
+    }
+
+    # Return the seconds elapsed between the reference date and the epoch
+    return [int]((New-TimeSpan -Start $unixepoch -end $date).TotalSeconds)
+}
+
+<#
+.SYNOPSIS
 Builds an object with the information for each job
 
 .PARAMETER item
-System.Object. An object containing job information
+System.String. An object containing job information
 
 .PARAMETER backupsessions
 System.Object. An object containing job session information
@@ -258,49 +246,41 @@ function Get-JobInfo {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [System.Object]$item,
+        [System.String]$jobname,
         [Parameter(Mandatory = $true)]
         [System.Object]$backupsessions
     )
 
     $Object = $null
-    $job = Get-LastJob -Name $item.name -backupsessions $BackupSessions
-    if (!$job) {
-        # Early return if there is no data
-        return $Object
+
+    # Get last job session
+    $lastsession = $backupsessions | Where-Object { $_.job_name -eq $jobname } | Sort-Object creation_time -Descending | Select-Object -First 1
+
+    # Return $null if there is no session data
+    if (!$lastsession) { 
+        return $Object 
+    }
+
+    # Get reason for the job failure/warning
+    # We get all jobs reasons from both table column and log_xml
+    $Log = (([Xml]$lastsession.log_xml).Root.Log | Where-Object { $_.Status -eq 'EFailed' }).Title
+    $reason = $lastsession.reason
+    foreach ($logreason in $Log) {
+        $reason += "`r`n$logreason"
     }
 
     # Build the output object
     $Object = New-Object System.Object
-    $Object | Add-Member -type NoteProperty -Name JOBID -Value $item.id
-    $Object | Add-Member -type NoteProperty -Name JOBTYPEID -Value $job.JobType
-    $Object | Add-Member -type NoteProperty -Name JOBTYPENAME -Value $typeNames[$job.JobType]
-    $Object | Add-Member -type NoteProperty -Name JOBNAME -Value ([System.Net.WebUtility]::HtmlEncode($job.JobName))
-    $Object | Add-Member -type NoteProperty -Name JOBRESULT -Value $job.JobResult
-    $Object | Add-Member -type NoteProperty -Name JOBRETRY -Value $job.Retry
-    $Object | Add-Member -type NoteProperty -Name JOBREASON -Value ([System.Net.WebUtility]::HtmlEncode($job.Reason))
-    $Object | Add-Member -type NoteProperty -Name JOBPROGRESS -Value $job.Progress
-
-    # Convert datetimes to UTC to handle timezones correctly
-    $jobstart = $job.JobStart.ToUniversalTime()
-    $jobend = $job.JobEnd.ToUniversalTime()
-
-    # Unix epoch to convert to unix timestamp
-    [System.DateTime]$unixepoch = (get-date -date "01/01/1970 00:00:00Z")
-
-    # Handle empty dates
-    # We make this one second less than $unixepoch.
-    # This makes the time calculations below return -1 to Zabbix, making the item "unsupported" while the job is running (or before it ran for the first time)
-    if ($jobstart -lt $unixepoch) {
-        $jobstart = $unixepoch.AddSeconds(-1)
-    }
-    if ($jobend -lt $unixepoch) {
-        $jobend = $unixepoch.AddSeconds(-1)
-    }
-
-    # Convert to unix timestamp - Seconds elapsed since unix epoch
-    $Object | Add-Member -type NoteProperty -Name JOBSTART -Value ([int]((New-TimeSpan -Start $unixepoch -end $jobstart).TotalSeconds))
-    $Object | Add-Member -type NoteProperty -Name JOBEND -Value ([int]((New-TimeSpan -Start $unixepoch -end $jobend).TotalSeconds))
+    $Object | Add-Member -type NoteProperty -Name JOBID -Value $lastsession.job_id
+    $Object | Add-Member -type NoteProperty -Name JOBTYPEID -Value $lastsession.job_type
+    $Object | Add-Member -type NoteProperty -Name JOBTYPENAME -Value $typeNames[$lastsession.job_type]
+    $Object | Add-Member -type NoteProperty -Name JOBNAME -Value ([System.Net.WebUtility]::HtmlEncode($lastsession.job_name))
+    $Object | Add-Member -type NoteProperty -Name JOBRESULT -Value $lastsession.result
+    $Object | Add-Member -type NoteProperty -Name JOBRETRY -Value $lastsession.is_retry
+    $Object | Add-Member -type NoteProperty -Name JOBREASON -Value ([System.Net.WebUtility]::HtmlEncode($reason))
+    $Object | Add-Member -type NoteProperty -Name JOBPROGRESS -Value $lastsession.progress
+    $Object | Add-Member -type NoteProperty -Name JOBSTART -Value (ConvertTo-Unixtimestamp $lastsession.creation_time.ToUniversalTime())
+    $Object | Add-Member -type NoteProperty -Name JOBEND -Value (ConvertTo-Unixtimestamp $lastsession.end_time.ToUniversalTime())
 
     return $Object
 }
@@ -313,47 +293,42 @@ Queries Veeam's database to obtain information about all supported job types.
 None
 
 .OUTPUTS
-None. Data is converted to JSON and sent to Zabbix using zabbix_sender.exe
+Job information in JSON format
 #>
 function Get-AllJobsInfo() {
     # Get backup jobs session information
-    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [$SQLveeamdb].[dbo].[Backup.Model.JobSessions] 
-        INNER JOIN [$SQLveeamdb].[dbo].[Backup.Model.BackupJobSessions] 
-        ON [$SQLveeamdb].[dbo].[Backup.Model.JobSessions].[id] = [$SQLveeamdb].[dbo].[Backup.Model.BackupJobSessions].[id]
+    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [VeeamBackup].[dbo].[Backup.Model.JobSessions] 
+        INNER JOIN [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions] 
+        ON [VeeamBackup].[dbo].[Backup.Model.JobSessions].[id] = [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions].[id]
         WHERE job_type IN $jobTypes 
         ORDER BY creation_time DESC, job_type, job_name"
 
     # Get all active jobs
-    $BackupJobs = Get-SqlCommand -Command "SELECT id,[type],name,options FROM [$SQLveeamdb].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+    $BackupJobs = Get-SqlCommand -Command "SELECT name, options FROM [VeeamBackup].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes ORDER BY [type], [name]"
 
     $return = @()
     # Get information for each active job
     foreach ($job in $BackupJobs) {
-        if (([Xml]$job.options).JobOptionsRoot.RunManually -like "False") {
-            $obj = Get-JobInfo -item $job -backupsessions $BackupSessions
-            $return += ($obj)
+        if (([Xml]$job.options).JobOptionsRoot.RunManually -eq "False") {
+            $jobinfo = Get-JobInfo -jobname $job.Name -backupsessions $BackupSessions
+            $return += ($jobinfo)
         }
     }
 
     # Convert data to JSON
     $return = ConvertTo-Json -Compress -InputObject @($return)
-    $return = $return -replace '"', '""'
-    $return = '"' + $return + '"'
-    
-    # Send data to Zabbix
-    Set-Location $pathzabbixsender
-    .\zabbix_sender.exe -c $config -k veeam.Jobs.Info -o $return
+    Write-Output $return
 }
 
 <#
 .SYNOPSIS
-Queries WIM to obtain Veeam's repository information and sends data to zabbix
+Queries WIM to obtain Veeam's repository information
 
 .INPUTS
 None
 
 .OUTPUTS
-None. Data is converted to JSON and sent to Zabbix using zabbix_sender.exe
+Repository information in JSON format
 #>
 function Get-RepoInfo() {
 
@@ -373,12 +348,7 @@ function Get-RepoInfo() {
 
     # Convert data to JSON
     $return = ConvertTo-Json -Compress -InputObject @($return)
-    $return = $return -replace '"', '""'
-    $return = '"' + $return + '"'
-
-    # Send data to Zabbix
-    Set-Location $pathzabbixsender
-    .\zabbix_sender.exe -c $config -k veeam.Repo.Info -o $return
+    Write-Output $return
 }
 
 <#
@@ -390,23 +360,25 @@ Gets the requested information from Veeam
 None
 
 .OUTPUTS
-None. Requested data is directly sent to Zabbix using zabbix_sender.exe
+Requested data in JSON format to be ingested by Zabbix
 In case of an error a message is printed to standard output
 #>
 switch ([string]$args[0]) {
-    "StartJobs" {
-        Get-AllJobsInfo
+    "RepoInfo" {
         Get-RepoInfo
     }
+    "JobsInfo" {
+        Get-AllJobsInfo
+    }
     "TotalJob" {
-        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [$SQLveeamdb].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [VeeamBackup].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
         if ($null -ne $BackupJobs) {
             Write-Host $BackupJobs.Rows.Count
         }
     }
     default {
         Write-Output "-- ERROR -- : Need an option  !"
-        Write-Output "Valid options are: StartJobs or TotalJob"
+        Write-Output "Valid options are: RepoInfo, JobsInfo or TotalJob"
         Write-Output "This script is not intended to be run directly but called by Zabbix."
     }
 }
