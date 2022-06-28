@@ -45,7 +45,8 @@ Sends total number of active Veeam jobs to Zabbix
 .NOTES
 Created by   : Romainsi   https://github.com/romainsi
 Contributions: aholiveira https://github.com/aholiveira
-Version      : 2.4
+               xtonousou  https://github.com/xtonousou
+Version      : 2.5
 
 .LINK
 https://github.com/romainsi/zabbix-VB-R-SQL
@@ -72,14 +73,17 @@ If you extend this, please inform the author so that the script can be extended
 #>
 
 # $jobtypes is used in SQL queries
-$jobTypes = "(0, 28, 51, 63)"
+$jobTypes = "(0, 1, 24, 28, 51, 63, 12000)"
 
 # $typeNames is used in Get-JobInfo function the send the type name to Zabbix
 $typeNames = @{
     0  = "Job";
+    1  = "Replication";
+    24 = "FileTape";
     28 = "Tape";
     51 = "Sync";
     63 = "Copy";
+    12000 = "Agent";
 }
 
 ########### DO NOT MODIFY BELOW ###########
@@ -313,14 +317,14 @@ None. Data is converted to JSON and sent to Zabbix using zabbix_sender.exe
 #>
 function Get-AllJobsInfo() {
     # Get backup jobs session information
-    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [VeeamBackup].[dbo].[Backup.Model.JobSessions] 
-        INNER JOIN [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions] 
-        ON [VeeamBackup].[dbo].[Backup.Model.JobSessions].[id] = [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions].[id]
+    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [$SQLveeamdb].[dbo].[Backup.Model.JobSessions] 
+        INNER JOIN [$SQLveeamdb].[dbo].[Backup.Model.BackupJobSessions] 
+        ON [$SQLveeamdb].[dbo].[Backup.Model.JobSessions].[id] = [$SQLveeamdb].[dbo].[Backup.Model.BackupJobSessions].[id]
         WHERE job_type IN $jobTypes 
         ORDER BY creation_time DESC, job_type, job_name"
 
     # Get all active jobs
-    $BackupJobs = Get-SqlCommand -Command "SELECT id,[type],name,options FROM [VeeamBackup].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+    $BackupJobs = Get-SqlCommand -Command "SELECT id,[type],name,options FROM [$SQLveeamdb].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
 
     $return = @()
     # Get information for each active job
@@ -395,7 +399,7 @@ switch ([string]$args[0]) {
         Get-RepoInfo
     }
     "TotalJob" {
-        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [VeeamBackup].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [$SQLveeamdb].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
         if ($null -ne $BackupJobs) {
             Write-Host $BackupJobs.Rows.Count
         }
