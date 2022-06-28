@@ -50,7 +50,7 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
 
 ## Setup
 
-1. Install the Zabbix agent 2 on your host (and verify you have add zabbix zabbix_sender in zabbix root path).
+1. Install the Zabbix agent 2 on your host.
 2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" for permit to connect with TCP/IP
 3. With SQL Server Management Studio : Create User/Pass with reader rights , permit to connect with local user in sql settings and specify the default database. With sqlcmd.exe (Change password "CHANGEME" with something more secure):
 
