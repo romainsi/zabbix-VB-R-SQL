@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>6.0</version>
-    <date>2022-06-13T12:53:17Z</date>
+    <date>2022-06-28T09:59:09Z</date>
     <groups>
         <group>
             <uuid>a571c0d144b14fd4a87a9d9b2aa9fcd6</uuid>
@@ -13,11 +13,11 @@
             <uuid>6f3da5aef0d44e2692bfb3949628da5e</uuid>
             <template>Veeam Backup And Replication</template>
             <name>Veeam Backup And Replication</name>
-            <description>Version: 2.2
+            <description>Version: 2.6
 Monitor Veeam Backup and Replication job and repository information
 It uses SQL queries to the Veeam database to obtain the information
 To use the template:
-1. Install the Zabbix agent 2 on your host (and verify you have zabbix_sender.exe in zabbix root path).
+1. Install the Zabbix agent or Zabbix agent 2 on your host.
 2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in &quot;Sql Server Configuration Manager&quot; to permit connection using TCP/IP
 3. Create User/Pass with reader rights, permit to connect with local user in sql settings and specify the default database, using SQL Server Management Studio.
    Alternatively you can use the following sql commands, using sqlcmd.exe:
@@ -26,7 +26,7 @@ To use the template:
 `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`  
 `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`  
 `GO`  
-4. In script, ajust variables line 33 to 40 to match your configuration
+4. In script, ajust variables on lines 63-68 to match your configuration
 5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
 6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File &quot;C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1&quot; &quot;$1&quot;` in zabbix_agent2.conf  
 7. Associate the template to the host with Veeam Backup and Replication installed
@@ -41,82 +41,15 @@ Contributions by: aholiveira</description>
             <items>
                 <item>
                     <uuid>8980fabd75684014aa4de0bd63d185c5</uuid>
-                    <name>Start All Jobs</name>
-                    <key>veeam.info[StartJobs]</key>
-                    <delay>10m</delay>
-                    <trends>0</trends>
-                    <value_type>TEXT</value_type>
-                    <preprocessing>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBID</parameter>
-                                <parameter>#JOBID</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBNAME</parameter>
-                                <parameter>#JOBNAME</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBSTART</parameter>
-                                <parameter>#JOBSTART</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBRESULT</parameter>
-                                <parameter>#JOBRESULT</parameter>
-                            </parameters>
-                        </step>
-                    </preprocessing>
-                    <tags>
-                        <tag>
-                            <tag>Application</tag>
-                            <value>MASTER ITEMS</value>
-                        </tag>
-                        <tag>
-                            <tag>Application</tag>
-                            <value>Veeam Backup and Replication</value>
-                        </tag>
-                    </tags>
-                </item>
-                <item>
-                    <uuid>57abe94db85d49009745ab2d163fa59b</uuid>
-                    <name>Nombre Total de backup Veeam</name>
-                    <key>veeam.info[TotalJob]</key>
-                    <trends>0</trends>
-                    <value_type>TEXT</value_type>
-                    <tags>
-                        <tag>
-                            <tag>Application</tag>
-                            <value>MASTER ITEMS</value>
-                        </tag>
-                        <tag>
-                            <tag>Application</tag>
-                            <value>Veeam Backup and Replication</value>
-                        </tag>
-                    </tags>
-                </item>
-                <item>
-                    <uuid>6b53819b09ad40d5b41102ef446774c8</uuid>
                     <name>Veeam Job Info</name>
-                    <type>TRAP</type>
-                    <key>veeam.Jobs.Info</key>
-                    <delay>0</delay>
-                    <history>1d</history>
+                    <key>veeam.info[JobsInfo]</key>
+                    <delay>5m</delay>
                     <trends>0</trends>
                     <value_type>TEXT</value_type>
                     <tags>
                         <tag>
                             <tag>Application</tag>
-                            <value>MASTER ITEMS</value>
+                            <value>Master Items</value>
                         </tag>
                         <tag>
                             <tag>Application</tag>
@@ -130,7 +63,7 @@ Contributions by: aholiveira</description>
                     <triggers>
                         <trigger>
                             <uuid>938d938bfb064a8bbc9642ab8825e527</uuid>
-                            <expression>nodata(/Veeam Backup And Replication/veeam.Jobs.Info,7200s)=1</expression>
+                            <expression>nodata(/Veeam Backup And Replication/veeam.info[JobsInfo],7200s)=1</expression>
                             <name>No data on Jobs</name>
                             <priority>AVERAGE</priority>
                             <tags>
@@ -143,18 +76,16 @@ Contributions by: aholiveira</description>
                     </triggers>
                 </item>
                 <item>
-                    <uuid>21ce719aca6d44c9b94bd2e841dcb459</uuid>
+                    <uuid>b4f0d0f76bfc45dfad2233b693788d10</uuid>
                     <name>Veeam Repository Info</name>
-                    <type>TRAP</type>
-                    <key>veeam.Repo.Info</key>
-                    <delay>0</delay>
-                    <history>1d</history>
+                    <key>veeam.info[RepoInfo]</key>
+                    <delay>5m</delay>
                     <trends>0</trends>
                     <value_type>TEXT</value_type>
                     <tags>
                         <tag>
                             <tag>Application</tag>
-                            <value>MASTER ITEMS</value>
+                            <value>Master Items</value>
                         </tag>
                         <tag>
                             <tag>Application</tag>
@@ -168,7 +99,7 @@ Contributions by: aholiveira</description>
                     <triggers>
                         <trigger>
                             <uuid>671f4be1ba9d41a39aec048031467920</uuid>
-                            <expression>nodata(/Veeam Backup And Replication/veeam.Repo.Info,7200s)=1</expression>
+                            <expression>nodata(/Veeam Backup And Replication/veeam.info[RepoInfo],7200s)=1</expression>
                             <name>No data in RepoInfo</name>
                             <priority>AVERAGE</priority>
                             <tags>
@@ -179,6 +110,23 @@ Contributions by: aholiveira</description>
                             </tags>
                         </trigger>
                     </triggers>
+                </item>
+                <item>
+                    <uuid>57abe94db85d49009745ab2d163fa59b</uuid>
+                    <name>Nombre Total de backup Veeam</name>
+                    <key>veeam.info[TotalJob]</key>
+                    <trends>0</trends>
+                    <value_type>TEXT</value_type>
+                    <tags>
+                        <tag>
+                            <tag>Application</tag>
+                            <value>Master Items</value>
+                        </tag>
+                        <tag>
+                            <tag>Application</tag>
+                            <value>Veeam Backup and Replication</value>
+                        </tag>
+                    </tags>
                 </item>
             </items>
             <discovery_rules>
@@ -195,9 +143,17 @@ Contributions by: aholiveira</description>
                             <name>Durée de la dernière tâche {#JOBNAME}</name>
                             <type>CALCULATED</type>
                             <key>veeam.Jobs.Duration['{#JOBTYPEID}','{#JOBID}']</key>
-                            <delay>10m</delay>
+                            <delay>5m</delay>
                             <units>s</units>
                             <params>last(//veeam.Jobs.LastEnd['{#JOBTYPEID}','{#JOBID}'])-last(//veeam.Jobs.LastStart['{#JOBTYPEID}','{#JOBID}'])</params>
+                            <preprocessing>
+                                <step>
+                                    <type>CHECK_NOT_SUPPORTED</type>
+                                    <parameters>
+                                        <parameter/>
+                                    </parameters>
+                                </step>
+                            </preprocessing>
                             <tags>
                                 <tag>
                                     <tag>Application</tag>
@@ -224,26 +180,12 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot; &amp;&amp; @.JOBTYPEID == &quot;{#JOBTYPEID}&quot;)].JOBEND</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.JOBID=='{#JOBID}')].JOBEND.first()</parameter>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Jobs.Info</key>
+                                <key>veeam.info[JobsInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -271,26 +213,12 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot; &amp;&amp; @.JOBTYPEID == &quot;{#JOBTYPEID}&quot;)].JOBSTART</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.JOBID=='{#JOBID}')].JOBSTART.first()</parameter>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Jobs.Info</key>
+                                <key>veeam.info[JobsInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -318,26 +246,12 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot; &amp;&amp; @.JOBTYPEID == &quot;{#JOBTYPEID}&quot;)].JOBPROGRESS</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.JOBID=='{#JOBID}')].JOBPROGRESS.first()</parameter>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Jobs.Info</key>
+                                <key>veeam.info[JobsInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -366,26 +280,12 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot; &amp;&amp; @.JOBTYPEID == &quot;{#JOBTYPEID}&quot;)].JOBREASON</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.JOBID=='{#JOBID}')].JOBREASON.first()</parameter>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Jobs.Info</key>
+                                <key>veeam.info[JobsInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -416,26 +316,12 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot; &amp;&amp; @.JOBTYPEID == &quot;{#JOBTYPEID}&quot;)].JOBRESULT</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.JOBID=='{#JOBID}')].JOBRESULT.first()</parameter>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Jobs.Info</key>
+                                <key>veeam.info[JobsInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -458,32 +344,22 @@ Contributions by: aholiveira</description>
                             <type>DEPENDENT</type>
                             <key>veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}']</key>
                             <delay>0</delay>
-                            <trends>0</trends>
-                            <value_type>TEXT</value_type>
                             <preprocessing>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.JOBID == &quot;{#JOBID}&quot;)].JOBRETRY</parameter>
+                                        <parameter>$[?(@.JOBID=='{#JOBID}')].JOBRETRY.first()</parameter>
                                     </parameters>
                                 </step>
                                 <step>
-                                    <type>STR_REPLACE</type>
+                                    <type>BOOL_TO_DECIMAL</type>
                                     <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
                                         <parameter/>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Jobs.Info</key>
+                                <key>veeam.info[JobsInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -504,14 +380,14 @@ Contributions by: aholiveira</description>
                     <trigger_prototypes>
                         <trigger_prototype>
                             <uuid>2a3bc3ccbd81458e98447c49e77303c1</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and find(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'],,&quot;iregexp&quot;,&quot;False&quot;)=1</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} Erreur</name>
                             <opdata>{#JOBREASON}</opdata>
                             <priority>HIGH</priority>
                             <dependencies>
                                 <dependency>
                                     <name>Backup {#JOBTYPENAME} {#JOBNAME} Erreur (With Retry)</name>
-                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and find(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'],,&quot;iregexp&quot;,&quot;True&quot;)=1</expression>
+                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
                                 </dependency>
                             </dependencies>
                             <tags>
@@ -531,7 +407,7 @@ Contributions by: aholiveira</description>
                         </trigger_prototype>
                         <trigger_prototype>
                             <uuid>c8c1be6d035d441ebc9669c1e38d632b</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and find(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'],,&quot;iregexp&quot;,&quot;True&quot;)=1</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} Erreur (With Retry)</name>
                             <opdata>{#JOBREASON}</opdata>
                             <priority>HIGH</priority>
@@ -573,14 +449,14 @@ Contributions by: aholiveira</description>
                         </trigger_prototype>
                         <trigger_prototype>
                             <uuid>06ef57742fac4fbdb906a223b75f995b</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and find(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'],,&quot;iregexp&quot;,&quot;False&quot;)=1</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} terminé avec Avertissement</name>
                             <opdata>{#JOBREASON}</opdata>
                             <priority>AVERAGE</priority>
                             <dependencies>
                                 <dependency>
                                     <name>Backup {#JOBTYPENAME} {#JOBNAME} terminé avec Avertissement (With Retry)</name>
-                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and find(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'],,&quot;iregexp&quot;,&quot;True&quot;)=1</expression>
+                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
                                 </dependency>
                             </dependencies>
                             <tags>
@@ -600,7 +476,7 @@ Contributions by: aholiveira</description>
                         </trigger_prototype>
                         <trigger_prototype>
                             <uuid>0bd3bd512a9342d6b69ea1099bc35cba</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and find(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'],,&quot;iregexp&quot;,&quot;True&quot;)=1</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} terminé avec Avertissement (With Retry)</name>
                             <opdata>{#JOBREASON}</opdata>
                             <priority>AVERAGE</priority>
@@ -623,7 +499,7 @@ Contributions by: aholiveira</description>
                     <graph_prototypes>
                         <graph_prototype>
                             <uuid>a784c019181e403396bb8ad933739daf</uuid>
-                            <name>{#JOBNAME} durée d'exécution</name>
+                            <name>Durée {#JOBNAME}</name>
                             <graph_items>
                                 <graph_item>
                                     <color>199C0D</color>
@@ -636,73 +512,30 @@ Contributions by: aholiveira</description>
                         </graph_prototype>
                     </graph_prototypes>
                     <master_item>
-                        <key>veeam.Jobs.Info</key>
+                        <key>veeam.info[JobsInfo]</key>
                     </master_item>
-                    <preprocessing>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBTYPENAME</parameter>
-                                <parameter>{#JOBTYPENAME}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBID</parameter>
-                                <parameter>{#JOBID}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBNAME</parameter>
-                                <parameter>{#JOBNAME}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBRESULT</parameter>
-                                <parameter>{#JOBRESULT}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBRETRY</parameter>
-                                <parameter>{#JOBRETRY}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBREASON</parameter>
-                                <parameter>{#JOBREASON}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBSTART</parameter>
-                                <parameter>{#JOBSTART}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBEND</parameter>
-                                <parameter>{#JOBEND}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>JOBTYPEID</parameter>
-                                <parameter>{#JOBTYPEID}</parameter>
-                            </parameters>
-                        </step>
-                    </preprocessing>
+                    <lld_macro_paths>
+                        <lld_macro_path>
+                            <lld_macro>{#JOBID}</lld_macro>
+                            <path>$.JOBID</path>
+                        </lld_macro_path>
+                        <lld_macro_path>
+                            <lld_macro>{#JOBNAME}</lld_macro>
+                            <path>$.JOBNAME</path>
+                        </lld_macro_path>
+                        <lld_macro_path>
+                            <lld_macro>{#JOBREASON}</lld_macro>
+                            <path>$.JOBREASON</path>
+                        </lld_macro_path>
+                        <lld_macro_path>
+                            <lld_macro>{#JOBTYPEID}</lld_macro>
+                            <path>$.JOBTYPEID</path>
+                        </lld_macro_path>
+                        <lld_macro_path>
+                            <lld_macro>{#JOBTYPENAME}</lld_macro>
+                            <path>$.JOBTYPENAME</path>
+                        </lld_macro_path>
+                    </lld_macro_paths>
                 </discovery_rule>
                 <discovery_rule>
                     <uuid>9d3543413aeb4bc582b44cf9d03b0787</uuid>
@@ -725,26 +558,12 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.REPONAME == &quot;{#REPONAME}&quot;)].REPOCAPACITY</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.REPONAME=='{#REPONAME}')].REPOCAPACITY.first()</parameter>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Repo.Info</key>
+                                <key>veeam.info[RepoInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -770,26 +589,12 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.REPONAME == &quot;{#REPONAME}&quot;)].REPOFREE</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.REPONAME=='{#REPONAME}')].REPOFREE.first()</parameter>
                                     </parameters>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Repo.Info</key>
+                                <key>veeam.info[RepoInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -813,21 +618,7 @@ Contributions by: aholiveira</description>
                                 <step>
                                     <type>JSONPATH</type>
                                     <parameters>
-                                        <parameter>$.[?(@.REPONAME == &quot;{#REPONAME}&quot;)].REPOOUTOFDATE</parameter>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>]</parameter>
-                                        <parameter/>
-                                    </parameters>
-                                </step>
-                                <step>
-                                    <type>STR_REPLACE</type>
-                                    <parameters>
-                                        <parameter>[</parameter>
-                                        <parameter/>
+                                        <parameter>$[?(@.REPONAME=='{#REPONAME}')].REPOOUTOFDATE.first()</parameter>
                                     </parameters>
                                 </step>
                                 <step>
@@ -838,7 +629,7 @@ Contributions by: aholiveira</description>
                                 </step>
                             </preprocessing>
                             <master_item>
-                                <key>veeam.Repo.Info</key>
+                                <key>veeam.info[RepoInfo]</key>
                             </master_item>
                             <tags>
                                 <tag>
@@ -876,6 +667,7 @@ Contributions by: aholiveira</description>
                             <name>Pourcentage d'espace libre sur {#REPONAME}</name>
                             <type>CALCULATED</type>
                             <key>veeam.RepoInfo.PercentFree['{#REPONAME}']</key>
+                            <delay>10m</delay>
                             <value_type>FLOAT</value_type>
                             <units>%</units>
                             <params>last(//veeam.RepoInfo.FreeSpace['{#REPONAME}'])/last(//veeam.RepoInfo.Capacity['{#REPONAME}'])*100</params>
@@ -892,7 +684,7 @@ Contributions by: aholiveira</description>
                             <trigger_prototypes>
                                 <trigger_prototype>
                                     <uuid>6788ff77c1d34b34b4eeec6805c5d98b</uuid>
-                                    <expression>last(/Veeam Backup And Replication/veeam.RepoInfo.PercentFree['{#REPONAME}'])&lt;{$VEEAM_REPO_FREE_WARN}</expression>
+                                    <expression>last(/Veeam Backup And Replication/veeam.RepoInfo.PercentFree['{#REPONAME}'])&lt;{$VEEAM_REPO_FREE_WARN:&quot;{#REPONAME}&quot;}</expression>
                                     <name>Moins de {$VEEAM_REPO_FREE_WARN}% restant sur le repository {#REPONAME}</name>
                                     <opdata>Current value: {ITEM.LASTVALUE1}</opdata>
                                     <priority>HIGH</priority>
@@ -940,38 +732,14 @@ Contributions by: aholiveira</description>
                         </graph_prototype>
                     </graph_prototypes>
                     <master_item>
-                        <key>veeam.Repo.Info</key>
+                        <key>veeam.info[RepoInfo]</key>
                     </master_item>
-                    <preprocessing>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>REPONAME</parameter>
-                                <parameter>{#REPONAME}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>REPOFREE</parameter>
-                                <parameter>{#REPOFREE}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>REPOCAPACITY</parameter>
-                                <parameter>{#REPOCAPACITY}</parameter>
-                            </parameters>
-                        </step>
-                        <step>
-                            <type>STR_REPLACE</type>
-                            <parameters>
-                                <parameter>REPOOUTOFDATE</parameter>
-                                <parameter>{#REPOOUTOFDATE}</parameter>
-                            </parameters>
-                        </step>
-                    </preprocessing>
+                    <lld_macro_paths>
+                        <lld_macro_path>
+                            <lld_macro>{#REPONAME}</lld_macro>
+                            <path>$.REPONAME</path>
+                        </lld_macro_path>
+                    </lld_macro_paths>
                 </discovery_rule>
             </discovery_rules>
             <tags>
@@ -1022,6 +790,14 @@ Contributions by: aholiveira</description>
                             <newvalue>Job</newvalue>
                         </mapping>
                         <mapping>
+                            <value>1</value>
+                            <newvalue>Replication</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>2</value>
+                            <newvalue>File</newvalue>
+                        </mapping>
+                        <mapping>
                             <value>28</value>
                             <newvalue>Tape</newvalue>
                         </mapping>
@@ -1032,6 +808,18 @@ Contributions by: aholiveira</description>
                         <mapping>
                             <value>63</value>
                             <newvalue>Copy</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>4030</value>
+                            <newvalue>RMAN</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>12002</value>
+                            <newvalue>AgentBackupPolicy</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>12003</value>
+                            <newvalue>AgentBackupJob</newvalue>
                         </mapping>
                     </mappings>
                 </valuemap>
