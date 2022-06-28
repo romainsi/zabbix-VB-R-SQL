@@ -62,7 +62,7 @@ Powershell get all informations via SQL and send it to zabbix server/proxy with 
     GO
     ```
 
-4. In script, ajust variables line 56 to 63 to match your configuration
+4. In script, ajust variables line 64 to 69 to match your configuration
 5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
 6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf  
 7. Import Template_Veeam_Backup_And_Replication.yaml file into Zabbix.
