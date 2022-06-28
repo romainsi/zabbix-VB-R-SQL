@@ -27,7 +27,9 @@ JobsInfo - Get job information
 TotalJob - The number of Veeam active jobs 
 
 .OUTPUTS
-None. Information is directly sent to Zabbix agent using zabbix_sender.exe
+System.String. Information requested depending on the parameter given
+The output is JSON formated for RepoInfo and JobsInfo parameters.
+TotalJob outputs a single string with the number of active jobs.
 
 .EXAMPLE
 zabbix_vbr_jobs.ps1 RepoInfo
@@ -54,7 +56,7 @@ Sends total number of active Veeam jobs to Zabbix
 Created by   : Romainsi   https://github.com/romainsi
 Contributions: aholiveira https://github.com/aholiveira
                xtonousou  https://github.com/xtonousou
-Version      : 2.6
+Version      : 2.7
 
 .LINK
 https://github.com/romainsi/zabbix-VB-R-SQL
@@ -183,7 +185,7 @@ function Get-SqlCommand {
     catch {
         $retval = $null
         # We output the error message. This gets sent to Zabbix.
-        Write-Host $_.Exception.Message
+        Write-Output $_.Exception.Message
     }
     finally {
         # Make sure the connection is closed
@@ -252,10 +254,8 @@ function Get-JobInfo {
         [System.Object]$backupsessions
     )
 
-    $Object = $null
-
     # Get last job session
-    $lastsession = $backupsessions | Where-Object { $_.job_name -eq $jobname } | Sort-Object creation_time -Descending | Select-Object -First 1
+    $lastsession = $backupsessions
 
     # Return $null if there is no session data
     if (!$lastsession) { 
@@ -297,20 +297,24 @@ None
 Job information in JSON format
 #>
 function Get-AllJobsInfo() {
-    # Get backup jobs session information
-    $BackupSessions = Get-SqlCommand -Command "SELECT * FROM [VeeamBackup].[dbo].[Backup.Model.JobSessions] 
-        INNER JOIN [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions] 
-        ON [VeeamBackup].[dbo].[Backup.Model.JobSessions].[id] = [VeeamBackup].[dbo].[Backup.Model.BackupJobSessions].[id]
-        WHERE job_type IN $jobTypes 
-        ORDER BY creation_time DESC, job_type, job_name"
-
     # Get all active jobs
-    $BackupJobs = Get-SqlCommand -Command "SELECT name, options FROM [VeeamBackup].[dbo].[JobsView] WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes ORDER BY [type], [name]"
+    $BackupJobs = Get-SqlCommand -Command "SELECT id, name, options FROM [BJobs] WHERE [schedule_enabled] = 'true' AND [type] IN $jobTypes ORDER BY [type], [name]"
 
     $return = @()
     # Get information for each active job
     foreach ($job in $BackupJobs) {
         if (([Xml]$job.options).JobOptionsRoot.RunManually -eq "False") {
+            $job_id = $job.id;
+
+            # Get backup jobs session information
+            $BackupSessions = Get-SqlCommand -Command "SELECT TOP 1 
+            job_id, job_type, job_name, result, is_retry, progress, creation_time, end_time, log_xml, reason
+            FROM [Backup.Model.JobSessions]
+            INNER JOIN [Backup.Model.BackupJobSessions] 
+            ON [Backup.Model.JobSessions].[id] = [Backup.Model.BackupJobSessions].[id]
+            WHERE job_id='$job_id'
+            ORDER BY creation_time DESC"
+    
             $jobinfo = Get-JobInfo -jobname $job.Name -backupsessions $BackupSessions
             $return += ($jobinfo)
         }
@@ -372,9 +376,14 @@ switch ([string]$args[0]) {
         Get-AllJobsInfo
     }
     "TotalJob" {
-        $BackupJobs = Get-SqlCommand -Command "SELECT jobs.name FROM [VeeamBackup].[dbo].[JobsView] jobs WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+        $BackupJobs = Get-SqlCommand -Command "SELECT COUNT(jobs.name) as JobCount 
+        FROM [VeeamBackup].[dbo].[JobsView] jobs 
+        WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
         if ($null -ne $BackupJobs) {
-            Write-Host $BackupJobs.Rows.Count
+            Write-Output $BackupJobs.JobCount
+        }
+        else {
+            Write-Output "-- ERROR -- : No data available. Check configuration"
         }
     }
     default {
