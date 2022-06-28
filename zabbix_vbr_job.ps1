@@ -88,7 +88,7 @@ $typeNames = @{
     28    = "Tape";
     51    = "Sync";
     63    = "Copy";
-	4030  = "RMAN"
+    4030  = "RMAN"
     12002 = "Agent backup policy";
     12003 = "Agent backup job";
 }
