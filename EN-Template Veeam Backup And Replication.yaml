@@ -1,6 +1,6 @@
 zabbix_export:
   version: '6.0'
-  date: '2022-06-13T12:46:51Z'
+  date: '2022-06-28T09:53:26Z'
   groups:
     -
       uuid: a571c0d144b14fd4a87a9d9b2aa9fcd6
@@ -11,102 +11,41 @@ zabbix_export:
       template: 'Veeam Backup And Replication'
       name: 'Veeam Backup And Replication'
       description: |
-        Version: 2.5
+        Version: 2.6
         Monitor Veeam Backup and Replication job and repository information
         It uses SQL queries to the Veeam database to obtain the information
         To use the template:
-        1. Install the Zabbix agent 2 on your host (and verify you have add zabbix zabbix_sender in zabbix root path).
-        2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" for permit to connect with TCP/IP
-        3. With SQL Server Management Studio : Create User/Pass with reader rights , permit to connect with local user in sql settings and specify the default database. With sqlcmd.exe (Change password "CHANGEME" with something more secure):
-
-            ```sql
-            USE [VeeamBackup]
-            CREATE LOGIN [zabbixveeam] WITH PASSWORD = N'CHANGEME', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
-            CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];
-            EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';
-            GO
-            ```
-
-        4. In script, ajust variables line 56 to 63 to match your configuration
+        1. Install the Zabbix agent or Zabbix agent 2 on your host.
+        2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" to permit connection using TCP/IP
+        3. Create User/Pass with reader rights, permit to connect with local user in sql settings and specify the default database, using SQL Server Management Studio.
+           Alternatively you can use the following sql commands, using sqlcmd.exe:
+        `USE [VeeamBackup]`  
+        `CREATE LOGIN [zabbixveeam] WITH PASSWORD = N'CHANGEME', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;`  
+        `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`  
+        `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`  
+        `GO`  
+        4. In script, ajust variables on lines 63-68 to match your configuration
         5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
         6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf  
-        7. Import Template_Veeam_Backup_And_Replication.yaml file into Zabbix.
-        8. Associate Template "VEEAM Backup and Replication" to the host.  
-        NOTE: When importing the new template version on an existing installation please check all "Delete missing", except "Template linkage", to make sure the old items are deleted
-
-        Ajust Zabbix Agent & Server/Proxy timeout for userparameter, you can use this powershell command to determine the execution time :
-
-        ```powershell
-        (Measure-Command -Expression{ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "StartJobs"}).TotalSeconds
-        ```
+        7. Associate the template to the host with Veeam Backup and Replication installed
         
         Author: Romainsi
-        Contributions by: aholiveira, xtonousou
+        Contributions by: aholiveira
       groups:
         -
           name: Templates/Applications
       items:
         -
           uuid: 8980fabd75684014aa4de0bd63d185c5
-          name: 'Start All Jobs'
-          key: 'veeam.info[StartJobs]'
-          delay: 10m
-          trends: '0'
-          value_type: TEXT
-          preprocessing:
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBID
-                - '#JOBID'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBNAME
-                - '#JOBNAME'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBSTART
-                - '#JOBSTART'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBRESULT
-                - '#JOBRESULT'
-          tags:
-            -
-              tag: Application
-              value: 'MASTER ITEMS'
-            -
-              tag: Application
-              value: 'Veeam Backup and Replication'
-        -
-          uuid: 57abe94db85d49009745ab2d163fa59b
-          name: 'Total number of VEEAM jobs'
-          key: 'veeam.info[TotalJob]'
-          trends: '0'
-          value_type: TEXT
-          tags:
-            -
-              tag: Application
-              value: 'MASTER ITEMS'
-            -
-              tag: Application
-              value: 'Veeam Backup and Replication'
-        -
-          uuid: 6b53819b09ad40d5b41102ef446774c8
           name: 'Veeam Job Info'
-          type: TRAP
-          key: veeam.Jobs.Info
-          delay: '0'
-          history: 1d
+          key: 'veeam.info[JobsInfo]'
+          delay: 5m
           trends: '0'
           value_type: TEXT
           tags:
             -
               tag: Application
-              value: 'MASTER ITEMS'
+              value: 'Master Items'
             -
               tag: Application
               value: 'Veeam Backup and Replication'
@@ -116,7 +55,7 @@ zabbix_export:
           triggers:
             -
               uuid: 938d938bfb064a8bbc9642ab8825e527
-              expression: 'nodata(/Veeam Backup And Replication/veeam.Jobs.Info,7200s)=1'
+              expression: 'nodata(/Veeam Backup And Replication/veeam.info[JobsInfo],7200s)=1'
               name: 'No data on Jobs'
               priority: AVERAGE
               tags:
@@ -124,18 +63,16 @@ zabbix_export:
                   tag: Application
                   value: 'Veeam Backup and Replication'
         -
-          uuid: 21ce719aca6d44c9b94bd2e841dcb459
+          uuid: b4f0d0f76bfc45dfad2233b693788d10
           name: 'Veeam Repository Info'
-          type: TRAP
-          key: veeam.Repo.Info
-          delay: '0'
-          history: 1d
+          key: 'veeam.info[RepoInfo]'
+          delay: 5m
           trends: '0'
           value_type: TEXT
           tags:
             -
               tag: Application
-              value: 'MASTER ITEMS'
+              value: 'Master Items'
             -
               tag: Application
               value: 'Veeam Backup and Replication'
@@ -145,13 +82,26 @@ zabbix_export:
           triggers:
             -
               uuid: 671f4be1ba9d41a39aec048031467920
-              expression: 'nodata(/Veeam Backup And Replication/veeam.Repo.Info,7200s)=1'
+              expression: 'nodata(/Veeam Backup And Replication/veeam.info[RepoInfo],7200s)=1'
               name: 'No data in RepoInfo'
               priority: AVERAGE
               tags:
                 -
                   tag: Application
                   value: 'Veeam Backup and Replication'
+        -
+          uuid: 57abe94db85d49009745ab2d163fa59b
+          name: 'Total number of VEEAM jobs'
+          key: 'veeam.info[TotalJob]'
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Application
+              value: 'Master Items'
+            -
+              tag: Application
+              value: 'Veeam Backup and Replication'
       discovery_rules:
         -
           uuid: 72f6223c337e4c2b88a2d7ac703db143
@@ -166,9 +116,14 @@ zabbix_export:
               name: 'Last job duration {#JOBNAME}'
               type: CALCULATED
               key: 'veeam.Jobs.Duration[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: 10m
+              delay: 5m
               units: s
               params: 'last(//veeam.Jobs.LastEnd[''{#JOBTYPEID}'',''{#JOBID}''])-last(//veeam.Jobs.LastStart[''{#JOBTYPEID}'',''{#JOBID}''])'
+              preprocessing:
+                -
+                  type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
               tags:
                 -
                   tag: Application
@@ -190,19 +145,9 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBID == "{#JOBID}" && @.JOBTYPEID == "{#JOBTYPEID}")].JOBEND'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
+                    - '$[?(@.JOBID==''{#JOBID}'')].JOBEND.first()'
               master_item:
-                key: veeam.Jobs.Info
+                key: 'veeam.info[JobsInfo]'
               tags:
                 -
                   tag: Application
@@ -224,19 +169,9 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBID == "{#JOBID}" && @.JOBTYPEID == "{#JOBTYPEID}")].JOBSTART'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
+                    - '$[?(@.JOBID==''{#JOBID}'')].JOBSTART.first()'
               master_item:
-                key: veeam.Jobs.Info
+                key: 'veeam.info[JobsInfo]'
               tags:
                 -
                   tag: Application
@@ -258,19 +193,9 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBID == "{#JOBID}" && @.JOBTYPEID == "{#JOBTYPEID}")].JOBPROGRESS'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
+                    - '$[?(@.JOBID==''{#JOBID}'')].JOBPROGRESS.first()'
               master_item:
-                key: veeam.Jobs.Info
+                key: 'veeam.info[JobsInfo]'
               tags:
                 -
                   tag: Application
@@ -293,19 +218,9 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBID == "{#JOBID}" && @.JOBTYPEID == "{#JOBTYPEID}")].JOBREASON'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
+                    - '$[?(@.JOBID==''{#JOBID}'')].JOBREASON.first()'
               master_item:
-                key: veeam.Jobs.Info
+                key: 'veeam.info[JobsInfo]'
               tags:
                 -
                   tag: Application
@@ -329,19 +244,9 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBID == "{#JOBID}" && @.JOBTYPEID == "{#JOBTYPEID}")].JOBRESULT'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
+                    - '$[?(@.JOBID==''{#JOBID}'')].JOBRESULT.first()'
               master_item:
-                key: veeam.Jobs.Info
+                key: 'veeam.info[JobsInfo]'
               tags:
                 -
                   tag: Application
@@ -358,25 +263,17 @@ zabbix_export:
               type: DEPENDENT
               key: 'veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}'']'
               delay: '0'
-              trends: '0'
-              value_type: TEXT
               preprocessing:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.JOBID == "{#JOBID}")].JOBRETRY'
+                    - '$[?(@.JOBID==''{#JOBID}'')].JOBRETRY.first()'
                 -
-                  type: STR_REPLACE
+                  type: BOOL_TO_DECIMAL
                   parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
                     - ''
               master_item:
-                key: veeam.Jobs.Info
+                key: 'veeam.info[JobsInfo]'
               tags:
                 -
                   tag: Application
@@ -390,14 +287,14 @@ zabbix_export:
           trigger_prototypes:
             -
               uuid: 06ef57742fac4fbdb906a223b75f995b
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and find(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''],,"iregexp","False")=1'
+              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=0'
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning'
               opdata: '{#JOBREASON}'
               priority: AVERAGE
               dependencies:
                 -
                   name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning (With Retry)'
-                  expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and find(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''],,"iregexp","True")=1'
+                  expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
               tags:
                 -
                   tag: Application
@@ -410,7 +307,7 @@ zabbix_export:
                   value: '{#JOBTYPENAME}'
             -
               uuid: 0bd3bd512a9342d6b69ea1099bc35cba
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and find(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''],,"iregexp","True")=1'
+              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning (With Retry)'
               opdata: '{#JOBREASON}'
               priority: AVERAGE
@@ -426,14 +323,14 @@ zabbix_export:
                   value: '{#JOBTYPENAME}'
             -
               uuid: 2a3bc3ccbd81458e98447c49e77303c1
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and find(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''],,"iregexp","False")=1'
+              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=0'
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error'
               opdata: '{#JOBREASON}'
               priority: HIGH
               dependencies:
                 -
                   name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error (With Retry)'
-                  expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and find(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''],,"iregexp","True")=1'
+                  expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
               tags:
                 -
                   tag: Application
@@ -446,7 +343,7 @@ zabbix_export:
                   value: '{#JOBTYPENAME}'
             -
               uuid: c8c1be6d035d441ebc9669c1e38d632b
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and find(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''],,"iregexp","True")=1'
+              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error (With Retry)'
               opdata: '{#JOBREASON}'
               priority: HIGH
@@ -487,53 +384,23 @@ zabbix_export:
                     host: 'Veeam Backup And Replication'
                     key: 'veeam.Jobs.Duration[''{#JOBTYPEID}'',''{#JOBID}'']'
           master_item:
-            key: veeam.Jobs.Info
-          preprocessing:
+            key: 'veeam.info[JobsInfo]'
+          lld_macro_paths:
             -
-              type: STR_REPLACE
-              parameters:
-                - JOBTYPENAME
-                - '{#JOBTYPENAME}'
+              lld_macro: '{#JOBID}'
+              path: $.JOBID
             -
-              type: STR_REPLACE
-              parameters:
-                - JOBID
-                - '{#JOBID}'
+              lld_macro: '{#JOBNAME}'
+              path: $.JOBNAME
             -
-              type: STR_REPLACE
-              parameters:
-                - JOBNAME
-                - '{#JOBNAME}'
+              lld_macro: '{#JOBREASON}'
+              path: $.JOBREASON
             -
-              type: STR_REPLACE
-              parameters:
-                - JOBRESULT
-                - '{#JOBRESULT}'
+              lld_macro: '{#JOBTYPEID}'
+              path: $.JOBTYPEID
             -
-              type: STR_REPLACE
-              parameters:
-                - JOBRETRY
-                - '{#JOBRETRY}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBREASON
-                - '{#JOBREASON}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBSTART
-                - '{#JOBSTART}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBEND
-                - '{#JOBEND}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - JOBTYPEID
-                - '{#JOBTYPEID}'
+              lld_macro: '{#JOBTYPENAME}'
+              path: $.JOBTYPENAME
         -
           uuid: 9d3543413aeb4bc582b44cf9d03b0787
           name: 'VEEAM Repository'
@@ -555,19 +422,9 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.REPONAME == "{#REPONAME}")].REPOCAPACITY'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
+                    - '$[?(@.REPONAME==''{#REPONAME}'')].REPOCAPACITY.first()'
               master_item:
-                key: veeam.Repo.Info
+                key: 'veeam.info[RepoInfo]'
               tags:
                 -
                   tag: Application
@@ -588,19 +445,9 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.REPONAME == "{#REPONAME}")].REPOFREE'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
+                    - '$[?(@.REPONAME==''{#REPONAME}'')].REPOFREE.first()'
               master_item:
-                key: veeam.Repo.Info
+                key: 'veeam.info[RepoInfo]'
               tags:
                 -
                   tag: Application
@@ -619,23 +466,13 @@ zabbix_export:
                 -
                   type: JSONPATH
                   parameters:
-                    - '$.[?(@.REPONAME == "{#REPONAME}")].REPOOUTOFDATE'
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - ']'
-                    - ''
-                -
-                  type: STR_REPLACE
-                  parameters:
-                    - '['
-                    - ''
+                    - '$[?(@.REPONAME==''{#REPONAME}'')].REPOOUTOFDATE.first()'
                 -
                   type: BOOL_TO_DECIMAL
                   parameters:
                     - ''
               master_item:
-                key: veeam.Repo.Info
+                key: 'veeam.info[RepoInfo]'
               tags:
                 -
                   tag: Application
@@ -663,6 +500,7 @@ zabbix_export:
               name: 'Percent free space on {#REPONAME}'
               type: CALCULATED
               key: 'veeam.RepoInfo.PercentFree[''{#REPONAME}'']'
+              delay: 10m
               value_type: FLOAT
               units: '%'
               params: 'last(//veeam.RepoInfo.FreeSpace[''{#REPONAME}''])/last(//veeam.RepoInfo.Capacity[''{#REPONAME}''])*100'
@@ -676,8 +514,8 @@ zabbix_export:
               trigger_prototypes:
                 -
                   uuid: 6788ff77c1d34b34b4eeec6805c5d98b
-                  expression: 'last(/Veeam Backup And Replication/veeam.RepoInfo.PercentFree[''{#REPONAME}''])<{$VEEAM_REPO_FREE_WARN}'
-                  name: 'Less than {$VEEAM_REPO_FREE_WARN}% remaining on the repository {#REPONAME}'
+                  expression: 'last(/Veeam Backup And Replication/veeam.RepoInfo.PercentFree[''{#REPONAME}''])<{$VEEAM_REPO_FREE_WARN:"{#REPONAME}"}'
+                  name: 'Less than {$VEEAM_REPO_FREE_WARN:"{#REPONAME}"}% remaining on the repository {#REPONAME}'
                   opdata: 'Current value: {ITEM.LASTVALUE1}'
                   priority: HIGH
                   tags:
@@ -708,28 +546,11 @@ zabbix_export:
                     host: 'Veeam Backup And Replication'
                     key: 'veeam.RepoInfo.FreeSpace[''{#REPONAME}'']'
           master_item:
-            key: veeam.Repo.Info
-          preprocessing:
+            key: 'veeam.info[RepoInfo]'
+          lld_macro_paths:
             -
-              type: STR_REPLACE
-              parameters:
-                - REPONAME
-                - '{#REPONAME}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - REPOFREE
-                - '{#REPOFREE}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - REPOCAPACITY
-                - '{#REPOCAPACITY}'
-            -
-              type: STR_REPLACE
-              parameters:
-                - REPOOUTOFDATE
-                - '{#REPOOUTOFDATE}'
+              lld_macro: '{#REPONAME}'
+              path: $.REPONAME
       tags:
         -
           tag: Application
@@ -769,8 +590,8 @@ zabbix_export:
               value: '1'
               newvalue: Replication
             -
-              value: '24'
-              newvalue: FileTape
+              value: '2'
+              newvalue: File
             -
               value: '28'
               newvalue: Tape
@@ -781,5 +602,11 @@ zabbix_export:
               value: '63'
               newvalue: Copy
             -
-              value: '12000'
-              newvalue: Agent
+              value: '4030'
+              newvalue: RMAN
+            -
+              value: '12002'
+              newvalue: AgentBackupPolicy
+            -
+              value: '12003'
+              newvalue: AgentBackupJob
