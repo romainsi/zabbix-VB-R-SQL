@@ -1,3 +1,5 @@
+[CmdletBinding()]
+param([Parameter(Position = 0, Mandatory = $false)][ValidateSet("RepoInfo","JobsInfo","TotalJob")]$Operation)
 <#
 .SYNOPSIS
 Query Veeam job information
@@ -56,12 +58,13 @@ Sends total number of active Veeam jobs to Zabbix
 Created by   : Romainsi   https://github.com/romainsi
 Contributions: aholiveira https://github.com/aholiveira
                xtonousou  https://github.com/xtonousou
-Version      : 2.7
+Version      : 2.8
 
 .LINK
 https://github.com/romainsi/zabbix-VB-R-SQL
 
 #>
+
 ########### Adjust the following variables to match your configuration ###########
 $veeamserver = 'veeam.contoso.local'   # Machine name where Veeam is installed
 $SQLServer = 'sqlserver.contoso.local' # Database server where Veeam database is located. Change to sqlserver.contoso.local\InstanceName if you are running an SQL named instance
@@ -72,17 +75,13 @@ $SQLveeamdb = 'VeeamBackup'            # Name of Veeam database. VeeamBackup is 
 
 <#
 Supported job types.
-You can add additional types by extending the variables below
-Look into Veeam database table [BJobs] to find more job types
-Both variables below should be changed otherwise the script might fail
-If using version 2.0 or higher of the Zabbix template new types added here are automatically used in Zabbix
+You can add additional types by extending the variable below
+Look into Veeam's database table [BJobs] to find more job types
+If using version 2.0 or higher of the companion Zabbix template new types added here are automatically used in Zabbix
 If you extend this, please inform the author so that the script can be extended
 #>
 
-# $jobtypes is used in SQL queries
-$jobTypes = "(0, 1, 2, 28, 51, 63, 4030, 12002, 12003)"
-
-# $typeNames is used in Get-JobInfo function the send the type name to Zabbix
+# $typeNames is used in Get-JobInfo function to send the type name to Zabbix
 $typeNames = @{
     0     = "Job";
     1     = "Replication";
@@ -90,10 +89,13 @@ $typeNames = @{
     28    = "Tape";
     51    = "Sync";
     63    = "Copy";
-    4030  = "RMAN"
+    4030  = "RMAN";
     12002 = "Agent backup policy";
     12003 = "Agent backup job";
 }
+
+# $jobtypes is used in SQL queries
+$jobTypes = "($(($typeNames.Keys | Sort-Object) -join ", "))"
 
 ########### DO NOT MODIFY BELOW ###########
 
@@ -115,7 +117,6 @@ function Get-ConnectionString() {
     $builder.Add("Initial Catalog", $SQLveeamdb)
     $builder.Add("User Id", $SQLuid)
     $builder.Add("Password", $SQLpwd)
-
     return $builder.ConnectionString
 }
 
@@ -134,12 +135,13 @@ function Start-Connection() {
     $connectionString = Get-ConnectionString
 
     # Create a connection to MSSQL
-    $connection = New-Object System.Data.SqlClient.SqlConnection
+    Write-Debug "Opening SQL connection"
+    $connection = New-Object System.Data.SqlClient.SqlConnection -Confirm:$false
     $connection.ConnectionString = $connectionString
     $connection.Open()
     if ($connection.State -notmatch "Open") {
         # Connection open failed. Wait and retry connection
-        Start-Sleep -s 5
+        Start-Sleep -Seconds 5 -Confirm:$false
         $connection = New-Object System.Data.SqlClient.SqlConnection
         $connection.ConnectionString = $connectionString
         $connection.Open()
@@ -271,6 +273,7 @@ function Get-JobInfo {
     }
 
     # Build the output object
+    Write-Debug "Building object for job: $($lastsession.job_name)"
     $Object = New-Object System.Object
     $Object | Add-Member -type NoteProperty -Name JOBID -Value $lastsession.job_id
     $Object | Add-Member -type NoteProperty -Name JOBTYPEID -Value $lastsession.job_type
@@ -297,29 +300,29 @@ None
 Job information in JSON format
 #>
 function Get-AllJobsInfo() {
+    Write-Debug "Entering Get-AllJobsInfo()"
+
     # Get all active jobs
     $BackupJobs = Get-SqlCommand -Command "SELECT id, name, options FROM [BJobs] WHERE [schedule_enabled] = 'true' AND [type] IN $jobTypes ORDER BY [type], [name]"
-
+    Write-Debug "Job count: $($BackupJobs.Count)"
     $return = @()
     # Get information for each active job
     foreach ($job in $BackupJobs) {
         if (([Xml]$job.options).JobOptionsRoot.RunManually -eq "False") {
-            $job_id = $job.id;
-
+            Write-Debug "Getting data for job: $($job.name)"
             # Get backup jobs session information
             $BackupSessions = Get-SqlCommand -Command "SELECT TOP 1 
             job_id, job_type, job_name, result, is_retry, progress, creation_time, end_time, log_xml, reason
             FROM [Backup.Model.JobSessions]
             INNER JOIN [Backup.Model.BackupJobSessions] 
             ON [Backup.Model.JobSessions].[id] = [Backup.Model.BackupJobSessions].[id]
-            WHERE job_id='$job_id'
+            WHERE job_id='$($job.id)'
             ORDER BY creation_time DESC"
-    
             $jobinfo = Get-JobInfo -jobname $job.Name -backupsessions $BackupSessions
-            $return += ($jobinfo)
+            $return += $jobinfo
         }
     }
-
+    Write-Verbose "Got job information. Number of jobs: $($return.Count)"
     # Convert data to JSON
     $return = ConvertTo-Json -Compress -InputObject @($return)
     Write-Output $return
@@ -336,13 +339,15 @@ None
 Repository information in JSON format
 #>
 function Get-RepoInfo() {
-
+    Write-Debug "Entering Get-RepoInfo()" 
+    Write-Debug "Veeam server: $veeamserver"
     # Get data from WIM class
-    $repoinfo = Get-CimInstance -Class Repository -ComputerName $veeamserver -Namespace ROOT\VeeamBS
+    $repoinfo = Get-CimInstance -Class Repository -ComputerName $veeamserver -Namespace ROOT\VeeamBS -Confirm:$false
 
     $return = @()
     # Build the output object
     foreach ($item in $repoinfo) {
+        Write-Debug "Repository $($item.NAME)"
         $Object = New-Object System.Object
         $Object | Add-Member -type NoteProperty -Name REPONAME -Value ([System.Net.WebUtility]::HtmlEncode($item.NAME)) 
         $Object | Add-Member -type NoteProperty -Name REPOCAPACITY -Value $item.Capacity
@@ -350,10 +355,35 @@ function Get-RepoInfo() {
         $Object | Add-Member -type NoteProperty -Name REPOOUTOFDATE -Value $item.OutOfDate
         $return += $Object
     }
+    Write-Debug "Repository count: $($return.Count)"
 
     # Convert data to JSON
     $return = ConvertTo-Json -Compress -InputObject @($return)
     Write-Output $return
+}
+
+<#
+.SYNOPSIS
+Gets the number of active jobs from Veeam
+
+.INPUTS
+None
+
+.OUTPUTS
+The number of active jobs.
+In case of an error a message is printed to standard output
+#>
+function Get-TotalJobs() {
+    $BackupJobs = Get-SqlCommand -Command "SELECT COUNT(jobs.name) as JobCount 
+        FROM [VeeamBackup].[dbo].[JobsView] jobs 
+        WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
+    Write-Debug $BackupJobs.ToString()
+    if ($null -ne $BackupJobs) {
+        Write-Output $BackupJobs.JobCount
+    }
+    else {
+        Write-Output "-- ERROR -- : No data available. Check configuration"
+    }
 }
 
 <#
@@ -368,7 +398,14 @@ None
 Requested data in JSON format to be ingested by Zabbix
 In case of an error a message is printed to standard output
 #>
-switch ([string]$args[0]) {
+If ($PSBoundParameters['Debug']) {
+    $DebugPreference = 'Continue'
+}
+
+Write-Debug "Job types: $jobTypes"
+Write-Debug "Veeam server: $veeamserver"
+Write-Debug "SQL server: $SQLServer"
+switch ([string]$Operation) {
     "RepoInfo" {
         Get-RepoInfo
     }
@@ -376,15 +413,7 @@ switch ([string]$args[0]) {
         Get-AllJobsInfo
     }
     "TotalJob" {
-        $BackupJobs = Get-SqlCommand -Command "SELECT COUNT(jobs.name) as JobCount 
-        FROM [VeeamBackup].[dbo].[JobsView] jobs 
-        WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
-        if ($null -ne $BackupJobs) {
-            Write-Output $BackupJobs.JobCount
-        }
-        else {
-            Write-Output "-- ERROR -- : No data available. Check configuration"
-        }
+        Get-TotalJobs
     }
     default {
         Write-Output "-- ERROR -- : Need an option  !"
