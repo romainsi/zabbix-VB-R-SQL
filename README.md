@@ -72,5 +72,5 @@ NOTE: When importing the new template version on an existing installation please
 Ajust Zabbix Agent & Server/Proxy timeout for userparameter, you can use this powershell command to determine the execution time :
 
 ```powershell
-(Measure-Command -Expression{ powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "StartJobs"}).TotalSeconds
+(Measure-Command -Expression{ & "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "StartJobs"}).TotalSeconds
 ```

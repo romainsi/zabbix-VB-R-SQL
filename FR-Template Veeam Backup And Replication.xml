@@ -13,7 +13,7 @@
             <uuid>6f3da5aef0d44e2692bfb3949628da5e</uuid>
             <template>Veeam Backup And Replication</template>
             <name>Veeam Backup And Replication</name>
-            <description>Version: 2.6
+            <description>Version: 2.7
 Monitor Veeam Backup and Replication job and repository information
 It uses SQL queries to the Veeam database to obtain the information
 To use the template:
