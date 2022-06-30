@@ -136,12 +136,12 @@ function Start-Connection() {
 
     # Create a connection to MSSQL
     Write-Debug "Opening SQL connection"
-    $connection = New-Object System.Data.SqlClient.SqlConnection -Confirm:$false
+    $connection = New-Object System.Data.SqlClient.SqlConnection
     $connection.ConnectionString = $connectionString
     $connection.Open()
     if ($connection.State -notmatch "Open") {
         # Connection open failed. Wait and retry connection
-        Start-Sleep -Seconds 5 -Confirm:$false
+        Start-Sleep -Seconds 5
         $connection = New-Object System.Data.SqlClient.SqlConnection
         $connection.ConnectionString = $connectionString
         $connection.Open()
@@ -342,7 +342,7 @@ function Get-RepoInfo() {
     Write-Debug "Entering Get-RepoInfo()" 
     Write-Debug "Veeam server: $veeamserver"
     # Get data from WIM class
-    $repoinfo = Get-CimInstance -Class Repository -ComputerName $veeamserver -Namespace ROOT\VeeamBS -Confirm:$false
+    $repoinfo = Get-CimInstance -Class Repository -ComputerName $veeamserver -Namespace ROOT\VeeamBS
 
     $return = @()
     # Build the output object
