@@ -342,7 +342,7 @@ function Get-RepoInfo() {
     Write-Debug "Entering Get-RepoInfo()" 
     Write-Debug "Veeam server: $veeamserver"
     # Get data from WIM class
-    $repoinfo = Get-CimInstance -Class Repository -ComputerName $veeamserver -Namespace ROOT\VeeamBS -Confirm:$false
+    $repoinfo = Get-CimInstance -Class Repository -ComputerName $veeamserver -Namespace ROOT\VeeamBS
 
     $return = @()
     # Build the output object
