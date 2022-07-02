@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param([Parameter(Position = 0, Mandatory = $false)][ValidateSet("RepoInfo","JobsInfo","TotalJob")]$Operation)
+param(
+    [Parameter(Position = 0, Mandatory = $false)]
+    [ValidateSet("RepoInfo", "JobsInfo", "TotalJob")]
+    [System.String]$Operation
+)
 <#
 .SYNOPSIS
 Query Veeam job information
@@ -79,9 +83,8 @@ You can add additional types by extending the variable below
 Look into Veeam's database table [BJobs] to find more job types
 If using version 2.0 or higher of the companion Zabbix template new types added here are automatically used in Zabbix
 If you extend this, please inform the author so that the script can be extended
+$typeNames is used in Get-SessionInfo function to send the type name to Zabbix
 #>
-
-# $typeNames is used in Get-JobInfo function to send the type name to Zabbix
 $typeNames = @{
     0     = "Job";
     1     = "Replication";
@@ -94,7 +97,7 @@ $typeNames = @{
     12003 = "Agent backup job";
 }
 
-# $jobtypes is used in SQL queries
+# $jobtypes is used in SQL queries. Built automatically from the enumeration above.
 $jobTypes = "($(($typeNames.Keys | Sort-Object) -join ", "))"
 
 ########### DO NOT MODIFY BELOW ###########
@@ -117,6 +120,7 @@ function Get-ConnectionString() {
     $builder.Add("Initial Catalog", $SQLveeamdb)
     $builder.Add("User Id", $SQLuid)
     $builder.Add("Password", $SQLpwd)
+    Write-Debug "Connection String: $($builder.ConnectionString)"
     return $builder.ConnectionString
 }
 
@@ -146,6 +150,7 @@ function Start-Connection() {
         $connection.ConnectionString = $connectionString
         $connection.Open()
     }
+    Write-Debug "SQL connection state: $($connection.State)"
     return $connection
 }
 
@@ -165,7 +170,7 @@ System.Data.DataTable. A datatable object on success or $null on failure
 function Get-SqlCommand {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
+        [Parameter(Position = 0, Mandatory = $true)]
         [System.String]$Command
     )
 
@@ -179,6 +184,7 @@ function Get-SqlCommand {
         $SqlCmd.Connection = $Connection
         $SqlCmd.CommandTimeout = 0
         $SqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter
+        Write-Debug "Executing SQL query: ##$Command##"
         $SqlAdapter.SelectCommand = $SqlCmd
         $DataSet = New-Object System.Data.DataSet
         $SqlAdapter.Fill($DataSet)
@@ -222,7 +228,7 @@ function ConvertTo-Unixtimestamp {
 
     # Handle empty dates
     # We make this one second less than $unixepoch.
-    # This makes the time calculations below return -1 to Zabbix, making the item "unsupported" while the job is running (or before it ran for the first time)
+    # This makes the time calculation below return -1 to Zabbix, making the item "unsupported" while the job is running (or before it ran for the first time)
     if ($null -eq $date -or $date -lt $unixepoch) {
         $date = $unixepoch.AddSeconds(-1);
     }
@@ -235,10 +241,7 @@ function ConvertTo-Unixtimestamp {
 .SYNOPSIS
 Builds an object with the information for each job
 
-.PARAMETER item
-System.String. An object containing job information
-
-.PARAMETER backupsessions
+.PARAMETER BackupSession
 System.Object. An object containing job session information
 
 .INPUTS
@@ -247,45 +250,40 @@ None
 .OUTPUTS
 System.Object. An object with the job information with the tags used by the Zabbix template
 #>
-function Get-JobInfo {
+function Get-SessionInfo {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [System.String]$jobname,
-        [Parameter(Mandatory = $true)]
-        [System.Object]$backupsessions
+        [System.Object]$BackupSession
     )
 
-    # Get last job session
-    $lastsession = $backupsessions
-
     # Return $null if there is no session data
-    if (!$lastsession) { 
-        return $Object 
+    if (!$BackupSession) {
+        return $null
     }
 
     # Get reason for the job failure/warning
     # We get all jobs reasons from both table column and log_xml
-    $Log = (([Xml]$lastsession.log_xml).Root.Log | Where-Object { $_.Status -eq 'EFailed' }).Title
-    $reason = $lastsession.reason
+    $Log = (([Xml]$BackupSession.log_xml).Root.Log | Where-Object { $_.Status -eq 'EFailed' }).Title
+    $reason = $BackupSession.reason
     foreach ($logreason in $Log) {
         $reason += "`r`n$logreason"
     }
 
     # Build the output object
-    Write-Debug "Building object for job: $($lastsession.job_name)"
-    $Object = New-Object System.Object
-    $Object | Add-Member -type NoteProperty -Name JOBID -Value $lastsession.job_id
-    $Object | Add-Member -type NoteProperty -Name JOBTYPEID -Value $lastsession.job_type
-    $Object | Add-Member -type NoteProperty -Name JOBTYPENAME -Value $typeNames[$lastsession.job_type]
-    $Object | Add-Member -type NoteProperty -Name JOBNAME -Value ([System.Net.WebUtility]::HtmlEncode($lastsession.job_name))
-    $Object | Add-Member -type NoteProperty -Name JOBRESULT -Value $lastsession.result
-    $Object | Add-Member -type NoteProperty -Name JOBRETRY -Value $lastsession.is_retry
-    $Object | Add-Member -type NoteProperty -Name JOBREASON -Value ([System.Net.WebUtility]::HtmlEncode($reason))
-    $Object | Add-Member -type NoteProperty -Name JOBPROGRESS -Value $lastsession.progress
-    $Object | Add-Member -type NoteProperty -Name JOBSTART -Value (ConvertTo-Unixtimestamp $lastsession.creation_time.ToUniversalTime())
-    $Object | Add-Member -type NoteProperty -Name JOBEND -Value (ConvertTo-Unixtimestamp $lastsession.end_time.ToUniversalTime())
-
+    Write-Debug "Building object for job: $($BackupSession.job_name)"
+    $Object = [PSCustomObject]@{
+        JOBID       = $BackupSession.job_id
+        JOBTYPEID   = $BackupSession.job_type
+        JOBTYPENAME = $typeNames[$BackupSession.job_type]
+        JOBNAME     = ([System.Net.WebUtility]::HtmlEncode($BackupSession.job_name))
+        JOBRESULT   = $BackupSession.result
+        JOBRETRY    = $BackupSession.is_retry
+        JOBREASON   = ([System.Net.WebUtility]::HtmlEncode($reason))
+        JOBPROGRESS = $BackupSession.progress
+        JOBSTART    = (ConvertTo-Unixtimestamp $BackupSession.creation_time.ToUniversalTime())
+        JOBEND      = (ConvertTo-Unixtimestamp $BackupSession.end_time.ToUniversalTime())
+    }
     return $Object
 }
 
@@ -299,11 +297,11 @@ None
 .OUTPUTS
 Job information in JSON format
 #>
-function Get-AllJobsInfo() {
-    Write-Debug "Entering Get-AllJobsInfo()"
+function Get-JobInfo() {
+    Write-Debug "Entering Get-JobInfo()"
 
     # Get all active jobs
-    $BackupJobs = Get-SqlCommand -Command "SELECT id, name, options FROM [BJobs] WHERE [schedule_enabled] = 'true' AND [type] IN $jobTypes ORDER BY [type], [name]"
+    $BackupJobs = Get-SqlCommand "SELECT id, name, options FROM [BJobs] WHERE [schedule_enabled] = 'true' AND [type] IN $jobTypes ORDER BY [type], [name]"
     Write-Debug "Job count: $($BackupJobs.Count)"
     $return = @()
     # Get information for each active job
@@ -311,15 +309,15 @@ function Get-AllJobsInfo() {
         if (([Xml]$job.options).JobOptionsRoot.RunManually -eq "False") {
             Write-Debug "Getting data for job: $($job.name)"
             # Get backup jobs session information
-            $BackupSessions = Get-SqlCommand -Command "SELECT TOP 1 
+            $LastJobSession = Get-SqlCommand "SELECT TOP 1
             job_id, job_type, job_name, result, is_retry, progress, creation_time, end_time, log_xml, reason
             FROM [Backup.Model.JobSessions]
             INNER JOIN [Backup.Model.BackupJobSessions] 
             ON [Backup.Model.JobSessions].[id] = [Backup.Model.BackupJobSessions].[id]
             WHERE job_id='$($job.id)'
             ORDER BY creation_time DESC"
-            $jobinfo = Get-JobInfo -jobname $job.Name -backupsessions $BackupSessions
-            $return += $jobinfo
+            $sessionInfo = Get-SessionInfo $LastJobSession
+            $return += $sessionInfo
         }
     }
     Write-Verbose "Got job information. Number of jobs: $($return.Count)"
@@ -348,11 +346,12 @@ function Get-RepoInfo() {
     # Build the output object
     foreach ($item in $repoinfo) {
         Write-Debug "Repository $($item.NAME)"
-        $Object = New-Object System.Object
-        $Object | Add-Member -type NoteProperty -Name REPONAME -Value ([System.Net.WebUtility]::HtmlEncode($item.NAME)) 
-        $Object | Add-Member -type NoteProperty -Name REPOCAPACITY -Value $item.Capacity
-        $Object | Add-Member -type NoteProperty -Name REPOFREE -Value $item.FreeSpace
-        $Object | Add-Member -type NoteProperty -Name REPOOUTOFDATE -Value $item.OutOfDate
+        $Object = [PSCustomObject]@{
+            REPONAME      = ([System.Net.WebUtility]::HtmlEncode($item.NAME))
+            REPOCAPACITY  = $item.Capacity
+            REPOFREE      = $item.FreeSpace
+            REPOOUTOFDATE = $item.OutOfDate
+        }
         $return += $Object
     }
     Write-Debug "Repository count: $($return.Count)"
@@ -373,8 +372,8 @@ None
 The number of active jobs.
 In case of an error a message is printed to standard output
 #>
-function Get-TotalJobs() {
-    $BackupJobs = Get-SqlCommand -Command "SELECT COUNT(jobs.name) as JobCount 
+function Get-Totaljob() {
+    $BackupJobs = Get-SqlCommand "SELECT COUNT(jobs.name) as JobCount
         FROM [VeeamBackup].[dbo].[JobsView] jobs 
         WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
     Write-Debug $BackupJobs.ToString()
@@ -405,15 +404,15 @@ If ($PSBoundParameters['Debug']) {
 Write-Debug "Job types: $jobTypes"
 Write-Debug "Veeam server: $veeamserver"
 Write-Debug "SQL server: $SQLServer"
-switch ([string]$Operation) {
+switch ($Operation) {
     "RepoInfo" {
         Get-RepoInfo
     }
     "JobsInfo" {
-        Get-AllJobsInfo
+        Get-JobInfo
     }
     "TotalJob" {
-        Get-TotalJobs
+        Get-Totaljob
     }
     default {
         Write-Output "-- ERROR -- : Need an option  !"

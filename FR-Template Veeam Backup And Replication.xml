@@ -13,12 +13,12 @@
             <uuid>6f3da5aef0d44e2692bfb3949628da5e</uuid>
             <template>Veeam Backup And Replication</template>
             <name>Veeam Backup And Replication</name>
-            <description>Version: 2.7
+            <description>Version: 2.8
 Monitor Veeam Backup and Replication job and repository information
 It uses SQL queries to the Veeam database to obtain the information
 To use the template:
 1. Install the Zabbix agent or Zabbix agent 2 on your host.
-2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in &quot;Sql Server Configuration Manager&quot; to permit connection using TCP/IP
+2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" to permit connection using TCP/IP
 3. Create User/Pass with reader rights, permit to connect with local user in sql settings and specify the default database, using SQL Server Management Studio.
    Alternatively you can use the following sql commands, using sqlcmd.exe:
 `USE [VeeamBackup]`  
@@ -26,13 +26,17 @@ To use the template:
 `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`  
 `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`  
 `GO`  
-4. In script, ajust variables on lines 63-68 to match your configuration
+4. In script, ajust variables on lines 73-78 to match your configuration
 5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
-6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File &quot;C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1&quot; &quot;$1&quot;` in zabbix_agent2.conf  
+6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf  
 7. Associate the template to the host with Veeam Backup and Replication installed
 
-Author: Romainsi
-Contributions by: aholiveira</description>
+Created by:
+Romainsi https://github.com/romainsi
+
+Contributions:
+aholiveira https://github.com/aholiveira
+xtonousou https://github.com/xtonousou</description>
             <groups>
                 <group>
                     <name>Templates/Applications</name>
@@ -380,14 +384,15 @@ Contributions by: aholiveira</description>
                     <trigger_prototypes>
                         <trigger_prototype>
                             <uuid>2a3bc3ccbd81458e98447c49e77303c1</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} Erreur</name>
-                            <opdata>{#JOBREASON}</opdata>
+                            <opdata>{ITEM.LASTVALUE3}</opdata>
                             <priority>HIGH</priority>
+                            <description>{#JOBREASON}</description>
                             <dependencies>
                                 <dependency>
                                     <name>Backup {#JOBTYPENAME} {#JOBNAME} Erreur (With Retry)</name>
-                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
+                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0</expression>
                                 </dependency>
                             </dependencies>
                             <tags>
@@ -407,10 +412,11 @@ Contributions by: aholiveira</description>
                         </trigger_prototype>
                         <trigger_prototype>
                             <uuid>c8c1be6d035d441ebc9669c1e38d632b</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} Erreur (With Retry)</name>
-                            <opdata>{#JOBREASON}</opdata>
+                            <opdata>{ITEM.LASTVALUE3}</opdata>
                             <priority>HIGH</priority>
+                            <description>{#JOBREASON}</description>
                             <tags>
                                 <tag>
                                     <tag>Application</tag>
@@ -428,8 +434,8 @@ Contributions by: aholiveira</description>
                         </trigger_prototype>
                         <trigger_prototype>
                             <uuid>e09b65c222a64def80785e061f38affa</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])&lt;0 and (now()-avg(/Veeam Backup And Replication/veeam.Jobs.LastStart['{#JOBTYPEID}','{#JOBID}'],5m))&gt;{$VEEAM_JOB_HOURS_WARN:&quot;{#JOBID}&quot;}*3600</expression>
-                            <name>Backup {#JOBTYPENAME} {#JOBNAME} Progression &gt; {$VEEAM_JOB_HOURS_WARN:&quot;{#JOBID}&quot;}h</name>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])&lt;0 and (now()-avg(/Veeam Backup And Replication/veeam.Jobs.LastStart['{#JOBTYPEID}','{#JOBID}'],2m))&gt;{$VEEAM_JOB_HOURS_WARN:&quot;{#JOBNAME}&quot;}*3600</expression>
+                            <name>Backup {#JOBTYPENAME} {#JOBNAME} Progression &gt; {$VEEAM_JOB_HOURS_WARN:&quot;{#JOBNAME}&quot;}h</name>
                             <opdata>LastStart: {ITEM.LASTVALUE2} Progress: {ITEM.LASTVALUE1}</opdata>
                             <priority>HIGH</priority>
                             <tags>
@@ -449,14 +455,15 @@ Contributions by: aholiveira</description>
                         </trigger_prototype>
                         <trigger_prototype>
                             <uuid>06ef57742fac4fbdb906a223b75f995b</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} terminé avec Avertissement</name>
-                            <opdata>{#JOBREASON}</opdata>
+                            <opdata>{ITEM.LASTVALUE3}</opdata>
                             <priority>AVERAGE</priority>
+                            <description>{#JOBREASON}</description>
                             <dependencies>
                                 <dependency>
                                     <name>Backup {#JOBTYPENAME} {#JOBNAME} terminé avec Avertissement (With Retry)</name>
-                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
+                                    <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0</expression>
                                 </dependency>
                             </dependencies>
                             <tags>
@@ -476,10 +483,11 @@ Contributions by: aholiveira</description>
                         </trigger_prototype>
                         <trigger_prototype>
                             <uuid>0bd3bd512a9342d6b69ea1099bc35cba</uuid>
-                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1</expression>
+                            <expression>last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0</expression>
                             <name>Backup {#JOBTYPENAME} {#JOBNAME} terminé avec Avertissement (With Retry)</name>
-                            <opdata>{#JOBREASON}</opdata>
+                            <opdata>{ITEM.LASTVALUE3}</opdata>
                             <priority>AVERAGE</priority>
+                            <description>{#JOBREASON}</description>
                             <tags>
                                 <tag>
                                     <tag>Application</tag>
@@ -502,6 +510,7 @@ Contributions by: aholiveira</description>
                             <name>Durée {#JOBNAME}</name>
                             <graph_items>
                                 <graph_item>
+                                    <drawtype>GRADIENT_LINE</drawtype>
                                     <color>199C0D</color>
                                     <item>
                                         <host>Veeam Backup And Replication</host>
@@ -539,7 +548,7 @@ Contributions by: aholiveira</description>
                 </discovery_rule>
                 <discovery_rule>
                     <uuid>9d3543413aeb4bc582b44cf9d03b0787</uuid>
-                    <name>VEEAM Repository</name>
+                    <name>Veeam Repository</name>
                     <type>DEPENDENT</type>
                     <key>Veeam.Discovery.Repo</key>
                     <delay>0</delay>
@@ -685,7 +694,7 @@ Contributions by: aholiveira</description>
                                 <trigger_prototype>
                                     <uuid>6788ff77c1d34b34b4eeec6805c5d98b</uuid>
                                     <expression>last(/Veeam Backup And Replication/veeam.RepoInfo.PercentFree['{#REPONAME}'])&lt;{$VEEAM_REPO_FREE_WARN:&quot;{#REPONAME}&quot;}</expression>
-                                    <name>Moins de {$VEEAM_REPO_FREE_WARN}% restant sur le repository {#REPONAME}</name>
+                                    <name>Moins de {$VEEAM_REPO_FREE_WARN:"{#REPONAME}"}% restant sur le repository {#REPONAME}</name>
                                     <opdata>Current value: {ITEM.LASTVALUE1}</opdata>
                                     <priority>HIGH</priority>
                                     <tags>
@@ -744,8 +753,12 @@ Contributions by: aholiveira</description>
             </discovery_rules>
             <tags>
                 <tag>
-                    <tag>Application</tag>
-                    <value>Veeam Backup and Replication</value>
+                    <tag>class</tag>
+                    <value>application</value>
+                </tag>
+                <tag>
+                    <tag>target</tag>
+                    <value>veeam-backup-and-replication</value>
                 </tag>
             </tags>
             <macros>
@@ -758,6 +771,39 @@ Contributions by: aholiveira</description>
                     <value>20</value>
                 </macro>
             </macros>
+            <dashboards>
+                <dashboard>
+                    <uuid>9a7966868a1644caabc2684f37abf09d</uuid>
+                    <name>Durée de la tâche de sauvegarde</name>
+                    <display_period>60</display_period>
+                    <pages>
+                        <page>
+                            <widgets>
+                                <widget>
+                                    <type>GRAPH_PROTOTYPE</type>
+                                    <width>24</width>
+                                    <height>10</height>
+                                    <fields>
+                                        <field>
+                                            <type>INTEGER</type>
+                                            <name>rows</name>
+                                            <value>2</value>
+                                        </field>
+                                        <field>
+                                            <type>GRAPH_PROTOTYPE</type>
+                                            <name>graphid</name>
+                                            <value>
+                                                <host>Veeam Backup And Replication</host>
+                                                <name>Job duration: {#JOBNAME}</name>
+                                            </value>
+                                        </field>
+                                    </fields>
+                                </widget>
+                            </widgets>
+                        </page>
+                    </pages>
+                </dashboard>
+            </dashboards>
             <valuemaps>
                 <valuemap>
                     <uuid>cf1d0998a2644d90a948725c37df5fbd</uuid>
