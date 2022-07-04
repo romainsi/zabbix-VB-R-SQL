@@ -1,6 +1,6 @@
 zabbix_export:
   version: '6.0'
-  date: '2022-06-28T09:53:26Z'
+  date: '2022-06-30T23:09:39Z'
   groups:
     -
       uuid: a571c0d144b14fd4a87a9d9b2aa9fcd6
@@ -11,7 +11,7 @@ zabbix_export:
       template: 'Veeam Backup And Replication'
       name: 'Veeam Backup And Replication'
       description: |
-        Version: 2.7
+        Version: 2.8
         Monitor Veeam Backup and Replication job and repository information
         It uses SQL queries to the Veeam database to obtain the information
         To use the template:
@@ -24,13 +24,17 @@ zabbix_export:
         `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`  
         `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`  
         `GO`  
-        4. In script, ajust variables on lines 63-68 to match your configuration
+        4. In script, ajust variables on lines 73-78 to match your configuration
         5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
         6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf  
         7. Associate the template to the host with Veeam Backup and Replication installed
         
-        Author: Romainsi
-        Contributions by: aholiveira
+        Created by:
+        Romainsi https://github.com/romainsi
+
+        Contributions:
+        aholiveira https://github.com/aholiveira
+        xtonousou https://github.com/xtonousou
       groups:
         -
           name: Templates/Applications
@@ -91,7 +95,7 @@ zabbix_export:
                   value: 'Veeam Backup and Replication'
         -
           uuid: 57abe94db85d49009745ab2d163fa59b
-          name: 'Total number of VEEAM jobs'
+          name: 'Total number of Veeam jobs'
           key: 'veeam.info[TotalJob]'
           trends: '0'
           value_type: TEXT
@@ -287,14 +291,15 @@ zabbix_export:
           trigger_prototypes:
             -
               uuid: 06ef57742fac4fbdb906a223b75f995b
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=0'
+              expression: last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning'
-              opdata: '{#JOBREASON}'
+              opdata: '{ITEM.LASTVALUE3}'
               priority: AVERAGE
+              description: '{#JOBREASON}'
               dependencies:
                 -
                   name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning (With Retry)'
-                  expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
+                  expression: last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0
               tags:
                 -
                   tag: Application
@@ -307,10 +312,11 @@ zabbix_export:
                   value: '{#JOBTYPENAME}'
             -
               uuid: 0bd3bd512a9342d6b69ea1099bc35cba
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
+              expression: last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning (With Retry)'
-              opdata: '{#JOBREASON}'
+              opdata: '{ITEM.LASTVALUE3}'
               priority: AVERAGE
+              description: '{#JOBREASON}'
               tags:
                 -
                   tag: Application
@@ -323,14 +329,15 @@ zabbix_export:
                   value: '{#JOBTYPENAME}'
             -
               uuid: 2a3bc3ccbd81458e98447c49e77303c1
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=0'
+              expression: last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=0 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error'
-              opdata: '{#JOBREASON}'
+              opdata: '{ITEM.LASTVALUE3}'
               priority: HIGH
+              description: '{#JOBREASON}'
               dependencies:
                 -
                   name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error (With Retry)'
-                  expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
+                  expression: last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0
               tags:
                 -
                   tag: Application
@@ -343,10 +350,11 @@ zabbix_export:
                   value: '{#JOBTYPENAME}'
             -
               uuid: c8c1be6d035d441ebc9669c1e38d632b
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1'
+              expression: last(/Veeam Backup And Replication/veeam.Jobs.Result['{#JOBTYPEID}','{#JOBID}'])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry['{#JOBTYPEID}','{#JOBID}'])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason['{#JOBTYPEID}','{#JOBID}']))>0
               name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error (With Retry)'
-              opdata: '{#JOBREASON}'
+              opdata: '{ITEM.LASTVALUE3}'
               priority: HIGH
+              description: '{#JOBREASON}'
               tags:
                 -
                   tag: Application
@@ -359,8 +367,8 @@ zabbix_export:
                   value: '{#JOBTYPENAME}'
             -
               uuid: e09b65c222a64def80785e061f38affa
-              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])<0 and (now()-avg(/Veeam Backup And Replication/veeam.Jobs.LastStart[''{#JOBTYPEID}'',''{#JOBID}''],5m))>{$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}*3600'
-              name: 'Backup {#JOBTYPENAME} {#JOBNAME} in progress > {$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}h'
+              expression: 'last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])<0 and (now()-avg(/Veeam Backup And Replication/veeam.Jobs.LastStart[''{#JOBTYPEID}'',''{#JOBID}''],2m))>{$VEEAM_JOB_HOURS_WARN:"{#JOBNAME}"}*3600'
+              name: 'Backup {#JOBTYPENAME} {#JOBNAME} in progress > {$VEEAM_JOB_HOURS_WARN:"{#JOBNAME}"}h'
               opdata: 'LastStart: {ITEM.LASTVALUE2} Progress: {ITEM.LASTVALUE1}'
               priority: HIGH
               tags:
@@ -376,9 +384,10 @@ zabbix_export:
           graph_prototypes:
             -
               uuid: a784c019181e403396bb8ad933739daf
-              name: '{#JOBNAME} duration'
+              name: 'Job duration: {#JOBNAME}'
               graph_items:
                 -
+                  drawtype: GRADIENT_LINE
                   color: 199C0D
                   item:
                     host: 'Veeam Backup And Replication'
@@ -403,7 +412,7 @@ zabbix_export:
               path: $.JOBTYPENAME
         -
           uuid: 9d3543413aeb4bc582b44cf9d03b0787
-          name: 'VEEAM Repository'
+          name: 'Veeam Repository'
           type: DEPENDENT
           key: Veeam.Discovery.Repo
           delay: '0'
@@ -553,8 +562,11 @@ zabbix_export:
               path: $.REPONAME
       tags:
         -
-          tag: Application
-          value: 'Veeam Backup and Replication'
+          tag: class
+          value: application
+        -
+          tag: target
+          value: veeam-backup-and-replication
       macros:
         -
           macro: '{$VEEAM_JOB_HOURS_WARN}'
@@ -562,6 +574,29 @@ zabbix_export:
         -
           macro: '{$VEEAM_REPO_FREE_WARN}'
           value: '20'
+      dashboards:
+        -
+          uuid: 9a7966868a1644caabc2684f37abf09d
+          name: 'Backup job duration'
+          display_period: '60'
+          pages:
+            -
+              widgets:
+                -
+                  type: GRAPH_PROTOTYPE
+                  width: '24'
+                  height: '10'
+                  fields:
+                    -
+                      type: INTEGER
+                      name: rows
+                      value: '2'
+                    -
+                      type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'Veeam Backup And Replication'
+                        name: 'Job duration: {#JOBNAME}'
       valuemaps:
         -
           uuid: cf1d0998a2644d90a948725c37df5fbd
