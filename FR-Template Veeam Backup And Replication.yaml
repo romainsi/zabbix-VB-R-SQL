@@ -574,29 +574,6 @@ zabbix_export:
         -
           macro: '{$VEEAM_REPO_FREE_WARN}'
           value: '20'
-      dashboards:
-        -
-          uuid: 9a7966868a1644caabc2684f37abf09d
-          name: 'Durée de la tâche de sauvegarde'
-          display_period: '60'
-          pages:
-            -
-              widgets:
-                -
-                  type: GRAPH_PROTOTYPE
-                  width: '24'
-                  height: '10'
-                  fields:
-                    -
-                      type: INTEGER
-                      name: rows
-                      value: '2'
-                    -
-                      type: GRAPH_PROTOTYPE
-                      name: graphid
-                      value:
-                        host: 'Veeam Backup And Replication'
-                        name: 'Job duration: {#JOBNAME}'
       valuemaps:
         -
           uuid: cf1d0998a2644d90a948725c37df5fbd
