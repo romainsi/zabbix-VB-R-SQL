@@ -771,39 +771,6 @@ xtonousou https://github.com/xtonousou</description>
                     <value>20</value>
                 </macro>
             </macros>
-            <dashboards>
-                <dashboard>
-                    <uuid>9a7966868a1644caabc2684f37abf09d</uuid>
-                    <name>Durée de la tâche de sauvegarde</name>
-                    <display_period>60</display_period>
-                    <pages>
-                        <page>
-                            <widgets>
-                                <widget>
-                                    <type>GRAPH_PROTOTYPE</type>
-                                    <width>24</width>
-                                    <height>10</height>
-                                    <fields>
-                                        <field>
-                                            <type>INTEGER</type>
-                                            <name>rows</name>
-                                            <value>2</value>
-                                        </field>
-                                        <field>
-                                            <type>GRAPH_PROTOTYPE</type>
-                                            <name>graphid</name>
-                                            <value>
-                                                <host>Veeam Backup And Replication</host>
-                                                <name>Job duration: {#JOBNAME}</name>
-                                            </value>
-                                        </field>
-                                    </fields>
-                                </widget>
-                            </widgets>
-                        </page>
-                    </pages>
-                </dashboard>
-            </dashboards>
             <valuemaps>
                 <valuemap>
                     <uuid>cf1d0998a2644d90a948725c37df5fbd</uuid>
