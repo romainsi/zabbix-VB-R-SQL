@@ -309,13 +309,18 @@ function Get-JobInfo() {
         if (([Xml]$job.options).JobOptionsRoot.RunManually -eq "False") {
             Write-Debug "Getting data for job: $($job.name)"
             # Get backup jobs session information
-            $LastJobSession = Get-SqlCommand "SELECT TOP 1
+            $LastJobSessions = Get-SqlCommand "SELECT TOP 2
             job_id, job_type, job_name, result, is_retry, progress, creation_time, end_time, log_xml, reason
             FROM [Backup.Model.JobSessions]
             INNER JOIN [Backup.Model.BackupJobSessions] 
             ON [Backup.Model.JobSessions].[id] = [Backup.Model.BackupJobSessions].[id]
             WHERE job_id='$($job.id)'
             ORDER BY creation_time DESC"
+            $LastJobSession = $LastJobSessions | Sort-Object end_time -Descending | Select-Object -First 1
+                # Exception BackupSync continuous state
+                if ($LastJobSession.job_type -like '51' -and $LastJobSession.state -like '9') { 
+                $LastJobSession = $LastJobSessions | Sort-Object end_time -Descending | Select-Object -Last 1
+                }
             $sessionInfo = Get-SessionInfo $LastJobSession
             $return += $sessionInfo
         }
