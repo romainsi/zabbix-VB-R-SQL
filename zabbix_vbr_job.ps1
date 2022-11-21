@@ -62,7 +62,7 @@ Sends total number of active Veeam jobs to Zabbix
 Created by   : Romainsi   https://github.com/romainsi
 Contributions: aholiveira https://github.com/aholiveira
                xtonousou  https://github.com/xtonousou
-Version      : 2.8
+Version      : 2.9
 
 .LINK
 https://github.com/romainsi/zabbix-VB-R-SQL
@@ -150,6 +150,12 @@ function Start-Connection() {
         $connection.ConnectionString = $connectionString
         $connection.Open()
     }
+    if ($connection.State -eq "Open") {
+        Write-Debug "SQL connection open successfully"
+    }
+    else {
+        Write-Debug "SQL connection failed to open"
+    }
     Write-Debug "SQL connection state: $($connection.State)"
     return $connection
 }
@@ -192,8 +198,8 @@ function Get-SqlCommand {
     }
     catch {
         $retval = $null
-        # We output the error message. This gets sent to Zabbix.
-        Write-Output $_.Exception.Message
+        Write-Debug "Error when doing the query"
+        Write-Debug $_.Exception.Message
     }
     finally {
         # Make sure the connection is closed
@@ -317,10 +323,10 @@ function Get-JobInfo() {
             WHERE job_id='$($job.id)'
             ORDER BY creation_time DESC"
             $LastJobSession = $LastJobSessions | Sort-Object end_time -Descending | Select-Object -First 1
-                # Exception BackupSync continuous state
-                if ($LastJobSession.job_type -like '51' -and $LastJobSession.state -like '9') { 
+            # Exception BackupSync continuous state
+            if ($LastJobSession.job_type -like '51' -and $LastJobSession.state -like '9') {
                 $LastJobSession = $LastJobSessions | Sort-Object end_time -Descending | Select-Object -Last 1
-                }
+            }
             $sessionInfo = Get-SessionInfo $LastJobSession
             $return += $sessionInfo
         }
@@ -383,6 +389,7 @@ function Get-Totaljob() {
         WHERE [Schedule_Enabled] = 'true' AND [type] IN $jobTypes"
     Write-Debug $BackupJobs.ToString()
     if ($null -ne $BackupJobs) {
+        Write-Debug "JobCount: $($BackupJobs.GetType())"
         Write-Output $BackupJobs.JobCount
     }
     else {
