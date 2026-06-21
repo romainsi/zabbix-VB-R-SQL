@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '7.0'
+  version: '7.4'
   template_groups:
     - uuid: a571c0d144b14fd4a87a9d9b2aa9fcd6
       name: Templates/Applications
@@ -8,43 +8,81 @@ zabbix_export:
       template: 'Veeam Backup And Replication'
       name: 'Veeam Backup And Replication'
       description: |
-        Version: 3.2
-        Monitor Veeam Backup and Replication job and repository information
-        It uses SQL queries to the Veeam database to obtain the information
-        To use the template:
-        1. Install the Zabbix agent or Zabbix agent 2 on your host.
-        2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" to permit connection using TCP/IP
-        3. Create User/Pass with reader rights, permit to connect with local user in sql settings and specify the default database, using SQL Server Management Studio.
-           Alternatively you can use the following sql commands, using sqlcmd.exe:
+        Version : 3.3
+        Surveille les informations relatives aux tâches et aux dépôts Veeam Backup & Replication.
+        Utilise des requêtes SQL sur la base de données Veeam ainsi qu'un script PowerShell pour collecter les informations.
+        Prend en charge :
+        - Microsoft SQL Server (fournisseur .NET natif)
+        - PostgreSQL (ODBC)
+
+        Pour utiliser ce modèle :
+
+        1. Installez l'agent Zabbix ou Zabbix Agent 2 sur l'hôte.
+
+        2. Créez un utilisateur de base de données avec un accès en lecture seule.
+
+        SQL Server :
         `USE [VeeamBackup]`
         `CREATE LOGIN [zabbixveeam] WITH PASSWORD = N'CHANGEME', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;`
         `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`
         `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`
         `GO`
-        4. In script, ajust variables on lines 73-78 to match your configuration
-        5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
-        6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf  
-        7. Associate the template to the host with Veeam Backup and Replication installed
+
+        PostgreSQL :
+        `CREATE USER zabbixveeam WITH PASSWORD 'CHANGEME';`
+        `GRANT CONNECT ON DATABASE "VeeamBackup" TO zabbixveeam;`
+        `GRANT USAGE ON SCHEMA public TO zabbixveeam;`
+        `GRANT SELECT ON ALL TABLES IN SCHEMA public TO zabbixveeam;`
+
+        3. Copiez `zabbix_vbr_job.ps1` dans :
+        `C:\Program Files\Zabbix Agent\scripts\`
+
+        4. Créez le fichier `zabbix_vbr.conf` et placez-le dans le même répertoire que le script.
+
+        Exemple SQL Server :
+        SQLServer=SQLSERVER\INSTANCE
+        SQLDatabase=VeeamBackup
+        SQLIntegratedSecurity=false
+        SQLUsername=zabbixveeam
+        SQLPassword=CHANGEME
+        DBProvider=SqlServer
+
+        Exemple PostgreSQL :
+        SQLServer=localhost
+        SQLPort=5432
+        SQLDatabase=VeeamBackup
+        SQLIntegratedSecurity=false
+        SQLUsername=postgres
+        SQLPassword=CHANGEME
+        DBProvider=Postgres
+
+        5. Ajoutez le UserParameter suivant dans zabbix_agent.conf :
+        `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1" -Config "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr.conf" -Operation "$1"`
+
+        6. Importez `Template_Veeam_Backup_And_Replication.yaml`.
+
+        7. Associez le modèle à l'hôte.
+
+        Remarque : Si les règles de découverte expirent dans Zabbix, augmentez le paramètre Timeout dans le fichier de configuration de l'agent Zabbix à 30 secondes. La valeur Timeout par défaut de l'agent Zabbix est de 3 secondes, ce qui peut être insuffisant dans les environnements de grande taille.
         
-        Created by:
+        Créé par :
         Romainsi https://github.com/romainsi
-        
-        Contributions:
+
+        Contributions :
         aholiveira https://github.com/aholiveira
         xtonousou https://github.com/xtonousou
       vendor:
         name: romainsi
-        version: '3.2'
+        version: '3.3'
       groups:
         - name: Templates/Applications
       items:
         - uuid: 8980fabd75684014aa4de0bd63d185c5
-          name: 'Veeam Job Info'
+          name: 'Informations sur les tâches Veeam'
           key: 'veeam.info[JobsInfo]'
           delay: 5m
           history: 90d
           value_type: TEXT
-          trends: '0'
           preprocessing:
             - type: MATCHES_REGEX
               parameters:
@@ -53,26 +91,25 @@ zabbix_export:
               error_handler_params: '[]'
           tags:
             - tag: Application
-              value: 'Master Items'
+              value: 'Tâches Veeam'
             - tag: Application
               value: 'Veeam Backup and Replication'
             - tag: Application
-              value: 'Veeam Jobs'
+              value: 'Éléments maîtres'
           triggers:
             - uuid: 938d938bfb064a8bbc9642ab8825e527
               expression: 'nodata(/Veeam Backup And Replication/veeam.info[JobsInfo],7200s)=1'
-              name: 'No data on Jobs'
+              name: 'Aucune donnée sur les tâches'
               priority: AVERAGE
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
         - uuid: b4f0d0f76bfc45dfad2233b693788d10
-          name: 'Veeam Repository Info'
+          name: 'Informations sur les dépôts Veeam'
           key: 'veeam.info[RepoInfo]'
           delay: 5m
           history: 90d
           value_type: TEXT
-          trends: '0'
           preprocessing:
             - type: MATCHES_REGEX
               parameters:
@@ -81,59 +118,53 @@ zabbix_export:
               error_handler_params: '[]'
           tags:
             - tag: Application
-              value: 'Master Items'
+              value: 'Dépôt Veeam'
             - tag: Application
               value: 'Veeam Backup and Replication'
             - tag: Application
-              value: 'Veeam Repository'
+              value: 'Éléments maîtres'
           triggers:
             - uuid: 671f4be1ba9d41a39aec048031467920
               expression: 'nodata(/Veeam Backup And Replication/veeam.info[RepoInfo],7200s)=1'
-              name: 'No data in RepoInfo'
+              name: 'Aucune donnée dans les informations des dépôts'
               priority: AVERAGE
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
         - uuid: 57abe94db85d49009745ab2d163fa59b
-          name: 'Total number of Veeam jobs'
+          name: 'Nombre total de tâches Veeam'
           key: 'veeam.info[TotalJob]'
           delay: 5m
           history: 90d
           value_type: TEXT
-          trends: '0'
           tags:
             - tag: Application
-              value: 'Master Items'
-            - tag: Application
               value: 'Veeam Backup and Replication'
+            - tag: Application
+              value: 'Éléments maîtres'
       discovery_rules:
         - uuid: 72f6223c337e4c2b88a2d7ac703db143
-          name: 'Veeam Jobs Discovery'
+          name: 'Découverte des tâches Veeam'
           type: DEPENDENT
           key: veeam.Discovery.Jobs
-          delay: '0'
           filter:
             evaltype: AND
             conditions:
               - macro: '{#JOBNAME}'
                 value: '{$VEEAM.JOB.NAME.MATCHES}'
-                formulaid: A
               - macro: '{#JOBNAME}'
                 value: '{$VEEAM.JOB.NAME.NOT_MATCHES}'
                 operator: NOT_MATCHES_REGEX
-                formulaid: B
               - macro: '{#JOBTYPEID}'
                 value: '{$VEEAM.JOB.TYPE.MATCHES}'
-                formulaid: C
               - macro: '{#JOBTYPEID}'
                 value: '{$VEEAM.JOB.TYPE.NOT_MATCHES}'
                 operator: NOT_MATCHES_REGEX
-                formulaid: D
           lifetime: 1h
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 0496e3edd6a94181a4a6a5571a150ab8
-              name: 'Last job duration {#JOBNAME}'
+              name: 'Durée de la dernière tâche {#JOBNAME}'
               type: CALCULATED
               key: 'veeam.Jobs.Duration[''{#JOBTYPEID}'',''{#JOBID}'']'
               delay: 5m
@@ -147,18 +178,16 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 16f3aeb3091d44d9a95a04be1f802b01
-              name: 'Veeam job master data {#JOBNAME}'
+              name: 'Données maîtres de la tâche Veeam {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Info[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 1d
               value_type: TEXT
-              trends: '0'
               preprocessing:
                 - type: JSONPATH
                   parameters:
@@ -166,10 +195,9 @@ zabbix_export:
               master_item:
                 key: 'veeam.info[JobsInfo]'
             - uuid: f9ee55a362db407b89d0d8094dacd381
-              name: 'Last End Time {#JOBNAME}'
+              name: 'Heure de fin {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.LastEnd[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: unixtime
               preprocessing:
@@ -181,15 +209,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: b7a30412a17b4f5f8618deb8812494a2
-              name: 'Last run time {#JOBNAME}'
+              name: 'Heure du dernier démarrage {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.LastStart[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: unixtime
               preprocessing:
@@ -201,15 +228,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 0ce7808f0cbd4f28884595ecfc6a534c
-              name: 'Progress Backup {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Progression de la sauvegarde {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Progress[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: '%'
               preprocessing:
@@ -221,18 +247,16 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: d773dc4645ce4f0d94fac0f6f1ac3e5d
-              name: 'Last Reason {#JOBNAME}'
+              name: 'Dernière raison {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               value_type: TEXT
-              trends: '0'
               preprocessing:
                 - type: JSONPATH
                   parameters:
@@ -242,15 +266,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: befe5267925d49f5a82fab79c54af57c
-              name: 'Backup result {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Résultat de la sauvegarde {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               value_type: FLOAT
               valuemap:
@@ -264,37 +287,33 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 0742ac00da44467c9924f440186c5e56
-              name: 'Is Retry {#JOBNAME}'
+              name: 'Est une nouvelle tentative {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               preprocessing:
                 - type: JSONPATH
                   parameters:
                     - $.JOBRETRY
                 - type: BOOL_TO_DECIMAL
-                  parameters:
-                    - ''
               master_item:
                 key: 'veeam.Jobs.Info[''{#JOBTYPEID}'',''{#JOBID}'']'
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 1a9d364b6da24db6927eb085540bcb05
-              name: 'Backup backed up size {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Taille sauvegardée {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Size.Backedup[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: B
               preprocessing:
@@ -306,15 +325,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 4410f302599f4e9a8e6db7268d01eb1a
-              name: 'Backup total backup size {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Taille totale de la sauvegarde {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Size.BackupTotal[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: B
               preprocessing:
@@ -326,15 +344,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 214b1d4e7ccd47e49c635077b3bd0867
-              name: 'Backup processed used size {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Taille utilisée traitée {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Size.ProcessedUsed[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: B
               preprocessing:
@@ -346,15 +363,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: fc71712634a045008fb4a18fd7086573
-              name: 'Backup processed size {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Taille traitée {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Size.Processed[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: B
               preprocessing:
@@ -366,15 +382,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: f579994c20af4cfdbb02231f6c53b5cd
-              name: 'Backup stored size {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Taille stockée {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Size.Stored[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: B
               preprocessing:
@@ -386,15 +401,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: d43da794cd0a4923b8e481f0953c2cf0
-              name: 'Backup total used size {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Taille totale utilisée {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Size.TotalUsed[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: B
               preprocessing:
@@ -406,15 +420,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 81918082c91e40bca49cbcdd2a441a02
-              name: 'Backup total size {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Taille totale {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Size.Total[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: B
               preprocessing:
@@ -426,15 +439,14 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 082de18f815e457b8a51359c44034552
-              name: 'Backup average speed {#JOBTYPENAME}: {#JOBNAME}'
+              name: 'Vitesse moyenne de sauvegarde {#JOBTYPENAME} : {#JOBNAME}'
               type: DEPENDENT
               key: 'veeam.Jobs.Speed.Average[''{#JOBTYPEID}'',''{#JOBID}'']'
-              delay: '0'
               history: 90d
               units: Bps
               preprocessing:
@@ -446,96 +458,96 @@ zabbix_export:
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
           trigger_prototypes:
+            - uuid: 2a3bc3ccbd81458e98447c49e77303c1
+              expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=0 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
+              name: 'Erreur de sauvegarde {#JOBTYPENAME} {#JOBNAME}'
+              opdata: '{ITEM.LASTVALUE3}'
+              priority: HIGH
+              description: '{#JOBREASON}'
+              dependencies:
+                - name: 'Erreur de sauvegarde {#JOBTYPENAME} {#JOBNAME} (avec nouvelle tentative)'
+                  expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
+              tags:
+                - tag: Application
+                  value: 'Veeam Backup and Replication'
+                - tag: 'Type de sauvegarde'
+                  value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
+            - uuid: c8c1be6d035d441ebc9669c1e38d632b
+              expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
+              name: 'Erreur de sauvegarde {#JOBTYPENAME} {#JOBNAME} (avec nouvelle tentative)'
+              opdata: '{ITEM.LASTVALUE3}'
+              priority: HIGH
+              description: '{#JOBREASON}'
+              tags:
+                - tag: Application
+                  value: 'Veeam Backup and Replication'
+                - tag: 'Type de sauvegarde'
+                  value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 06ef57742fac4fbdb906a223b75f995b
               expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=0 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
-              name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning'
+              name: 'La sauvegarde {#JOBTYPENAME} {#JOBNAME} s''est terminée avec un avertissement'
               opdata: '{ITEM.LASTVALUE3}'
               priority: AVERAGE
               description: '{#JOBREASON}'
               dependencies:
-                - name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning (With Retry)'
+                - name: 'La sauvegarde {#JOBTYPENAME} {#JOBNAME} s''est terminée avec un avertissement (avec nouvelle tentative)'
                   expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
-                  value: '{#JOBTYPENAME}'
                 - tag: component
                   value: backup
                 - tag: jobid
                   value: '{#JOBID}'
                 - tag: scope
                   value: job
+                - tag: 'Type de sauvegarde'
+                  value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
             - uuid: 0bd3bd512a9342d6b69ea1099bc35cba
               expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=1 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
-              name: 'Backup {#JOBTYPENAME} {#JOBNAME} ended with Warning (With Retry)'
+              name: 'La sauvegarde {#JOBTYPENAME} {#JOBNAME} s''est terminée avec un avertissement (avec nouvelle tentative)'
               opdata: '{ITEM.LASTVALUE3}'
               priority: AVERAGE
               description: '{#JOBREASON}'
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
-            - uuid: 2a3bc3ccbd81458e98447c49e77303c1
-              expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=0 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
-              name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error'
-              opdata: '{ITEM.LASTVALUE3}'
-              priority: HIGH
-              description: '{#JOBREASON}'
-              dependencies:
-                - name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error (With Retry)'
-                  expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
-              tags:
-                - tag: Application
-                  value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
+                - tag: 'Tâche de sauvegarde'
                   value: '{#JOBNAME}'
-                - tag: 'Backup Type'
-                  value: '{#JOBTYPENAME}'
-            - uuid: c8c1be6d035d441ebc9669c1e38d632b
-              expression: '{$VEEAM_JOB_RESULT_WARN:"{#JOBID}"}=1 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=2 and last(/Veeam Backup And Replication/veeam.Jobs.Retry[''{#JOBTYPEID}'',''{#JOBID}''])=1 and length(last(/Veeam Backup And Replication/veeam.Jobs.Reason[''{#JOBTYPEID}'',''{#JOBID}'']))>0'
-              name: 'Backup {#JOBTYPENAME} {#JOBNAME} Error (With Retry)'
-              opdata: '{ITEM.LASTVALUE3}'
-              priority: HIGH
-              description: '{#JOBREASON}'
-              tags:
-                - tag: Application
-                  value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
-                  value: '{#JOBTYPENAME}'
             - uuid: e09b65c222a64def80785e061f38affa
               expression: 'change(/Veeam Backup And Replication/veeam.Jobs.Progress[''{#JOBTYPEID}'',''{#JOBID}''])=0 and last(/Veeam Backup And Replication/veeam.Jobs.Progress[''{#JOBTYPEID}'',''{#JOBID}''])<100 and last(/Veeam Backup And Replication/veeam.Jobs.Result[''{#JOBTYPEID}'',''{#JOBID}''])=-1 and (now()-last(/Veeam Backup And Replication/veeam.Jobs.LastStart[''{#JOBTYPEID}'',''{#JOBID}'']))>{$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}*3600'
-              name: 'Backup {#JOBTYPENAME} {#JOBNAME} in progress > {$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}h'
-              opdata: 'LastStart: {ITEM.LASTVALUE3} Progress: {ITEM.LASTVALUE1}'
+              name: 'Sauvegarde {#JOBTYPENAME} {#JOBNAME} en cours depuis > {$VEEAM_JOB_HOURS_WARN:"{#JOBID}"}h'
+              opdata: 'Dernier démarrage : {ITEM.LASTVALUE3} Progression : {ITEM.LASTVALUE1}'
               priority: HIGH
               description: |
-                If a job is taking longer than usually to finish it might indicate issues with the backup infrastructure. You should check:
-                - Available network bandwidth between backup source, server and repository.
-                - Backup repository settings (too much job concurrency could degrade backup performance)
-                - Backup size (if you are doing everything in a single backup job it might take longer than expected).
-                Set the default to a longer timeout, if normal job execution time is longer than the default, either for that particular job or for all backups. See macro \{$VEEAM_JOB_HOURS_WARN\}
+                Si une tâche met plus de temps que d'habitude à se terminer, cela peut indiquer des problèmes avec l'infrastructure de sauvegarde. Vous devriez vérifier :
+                - La bande passante réseau disponible entre la source de sauvegarde, le serveur et le dépôt.
+                - Les paramètres du dépôt de sauvegarde (une trop grande concurrence de tâches peut dégrader les performances de sauvegarde)
+                - La taille de la sauvegarde (si vous effectuez tout en une seule tâche de sauvegarde, cela peut prendre plus de temps que prévu).
+                Définissez un délai d'expiration plus long si le temps d'exécution normal de la tâche est supérieur à la valeur par défaut, que ce soit pour cette tâche particulière ou pour toutes les sauvegardes. Voir la macro \{$VEEAM_JOB_HOURS_WARN\}
               tags:
                 - tag: Application
                   value: 'Veeam Backup and Replication'
-                - tag: 'Backup Job'
-                  value: '{#JOBNAME}'
-                - tag: 'Backup Type'
+                - tag: 'Type de sauvegarde'
                   value: '{#JOBTYPENAME}'
+                - tag: 'Tâche de sauvegarde'
+                  value: '{#JOBNAME}'
           graph_prototypes:
             - uuid: a784c019181e403396bb8ad933739daf
-              name: 'Job duration: {#JOBNAME}'
+              name: 'Durée de la tâche : {#JOBNAME}'
               graph_items:
                 - drawtype: GRADIENT_LINE
                   color: 199C0D
@@ -556,34 +568,28 @@ zabbix_export:
             - lld_macro: '{#JOBTYPENAME}'
               path: $.JOBTYPENAME
         - uuid: 9d3543413aeb4bc582b44cf9d03b0787
-          name: 'Veeam Repository'
+          name: 'Dépôt Veeam'
           type: DEPENDENT
           key: Veeam.Discovery.Repo
-          delay: '0'
           filter:
             evaltype: AND
             conditions:
               - macro: '{#REPONAME}'
                 value: '{$VEEAM.REPOSITORIES.NAME.MATCHES}'
-                formulaid: A
               - macro: '{#REPONAME}'
                 value: '{$VEEAM.REPOSITORIES.NAME.NOT_MATCHES}'
                 operator: NOT_MATCHES_REGEX
-                formulaid: B
               - macro: '{#REPOTYPE}'
                 value: '{$VEEAM.REPOSITORIES.TYPE.MATCHES}'
-                formulaid: C
               - macro: '{#REPOTYPE}'
                 value: '{$VEEAM.REPOSITORIES.TYPE.NOT_MATCHES}'
                 operator: NOT_MATCHES_REGEX
-                formulaid: D
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: f7c95c54aadc4a53862a4de689b42cf9
-              name: 'Total space repository {#REPONAME}'
+              name: 'Espace total du dépôt {#REPONAME}'
               type: DEPENDENT
               key: 'veeam.RepoInfo.Capacity[''{#REPONAME}'']'
-              delay: '0'
               history: 30d
               trends: 90d
               units: B
@@ -595,16 +601,15 @@ zabbix_export:
                 key: 'veeam.RepoInfo.Info[''{#REPONAME}'']'
               tags:
                 - tag: Application
-                  value: 'Veeam Backup and Replication'
+                  value: 'Dépôt Veeam'
                 - tag: Application
-                  value: 'Veeam Repository'
-                - tag: Repository
+                  value: 'Veeam Backup and Replication'
+                - tag: Dépôt
                   value: '{#REPONAME}'
             - uuid: 288ba9353a394ef3adb0076483b75ea4
-              name: 'Remaining space repository {#REPONAME}'
+              name: 'Espace restant du dépôt {#REPONAME}'
               type: DEPENDENT
               key: 'veeam.RepoInfo.FreeSpace[''{#REPONAME}'']'
-              delay: '0'
               history: 30d
               trends: 90d
               units: B
@@ -616,19 +621,17 @@ zabbix_export:
                 key: 'veeam.RepoInfo.Info[''{#REPONAME}'']'
               tags:
                 - tag: Application
-                  value: 'Veeam Backup and Replication'
+                  value: 'Dépôt Veeam'
                 - tag: Application
-                  value: 'Veeam Repository'
-                - tag: Repository
+                  value: 'Veeam Backup and Replication'
+                - tag: Dépôt
                   value: '{#REPONAME}'
             - uuid: 20e8ec8c6e4c4446afcea7d22dbbccac
-              name: 'Veeam repository master data {#REPONAME}'
+              name: 'Données maîtres du dépôt Veeam {#REPONAME}'
               type: DEPENDENT
               key: 'veeam.RepoInfo.Info[''{#REPONAME}'']'
-              delay: '0'
               history: '0'
               value_type: TEXT
-              trends: '0'
               preprocessing:
                 - type: JSONPATH
                   parameters:
@@ -637,49 +640,46 @@ zabbix_export:
                 key: 'veeam.info[RepoInfo]'
               tags:
                 - tag: Application
-                  value: 'Veeam Backup and Replication'
+                  value: 'Dépôt Veeam'
                 - tag: Application
-                  value: 'Veeam Repository'
+                  value: 'Veeam Backup and Replication'
                 - tag: component
-                  value: 'Master item'
-                - tag: Repository
+                  value: 'Élément maître'
+                - tag: Dépôt
                   value: '{#REPONAME}'
             - uuid: 6a38e3e0544d4ef083ce36a8cc6a5862
-              name: 'Out of date {#REPONAME}'
+              name: 'Informations obsolètes {#REPONAME}'
               type: DEPENDENT
               key: 'veeam.RepoInfo.OutOfDate[''{#REPONAME}'']'
-              delay: '0'
               history: 30d
               preprocessing:
                 - type: JSONPATH
                   parameters:
                     - $.REPOOUTOFDATE
                 - type: BOOL_TO_DECIMAL
-                  parameters:
-                    - ''
               master_item:
                 key: 'veeam.RepoInfo.Info[''{#REPONAME}'']'
               tags:
                 - tag: Application
-                  value: 'Veeam Backup and Replication'
+                  value: 'Dépôt Veeam'
                 - tag: Application
-                  value: 'Veeam Repository'
-                - tag: Repository
+                  value: 'Veeam Backup and Replication'
+                - tag: Dépôt
                   value: '{#REPONAME}'
               trigger_prototypes:
                 - uuid: c45376c7d61f47e4b7c30482568b1d76
                   expression: 'last(/Veeam Backup And Replication/veeam.RepoInfo.OutOfDate[''{#REPONAME}''])=1 and {$VEEAM_REPO_OUTOFDATE:"{#REPONAME}"}=1'
                   recovery_mode: RECOVERY_EXPRESSION
                   recovery_expression: 'last(/Veeam Backup And Replication/veeam.RepoInfo.OutOfDate[''{#REPONAME}''])=0 or {$VEEAM_REPO_OUTOFDATE:"{#REPONAME}"}=0'
-                  name: 'Repository {#REPONAME} information is out of date'
+                  name: 'Les informations du dépôt {#REPONAME} sont obsolètes'
                   priority: HIGH
                   tags:
                     - tag: Application
-                      value: 'Veeam Backup and Replication'
+                      value: 'Dépôt Veeam'
                     - tag: Application
-                      value: 'Veeam Repository'
+                      value: 'Veeam Backup and Replication'
             - uuid: 351fcc7e69b1472b8a09a02470082e13
-              name: 'Percent free space on {#REPONAME}'
+              name: 'Pourcentage d''espace libre sur {#REPONAME}'
               type: CALCULATED
               key: 'veeam.RepoInfo.PercentFree[''{#REPONAME}'']'
               delay: 10m
@@ -689,25 +689,24 @@ zabbix_export:
               params: 'last(//veeam.RepoInfo.FreeSpace[''{#REPONAME}''])/last(//veeam.RepoInfo.Capacity[''{#REPONAME}''])*100'
               tags:
                 - tag: Application
-                  value: 'Veeam Backup and Replication'
+                  value: 'Dépôt Veeam'
                 - tag: Application
-                  value: 'Veeam Repository'
+                  value: 'Veeam Backup and Replication'
               trigger_prototypes:
                 - uuid: 6788ff77c1d34b34b4eeec6805c5d98b
                   expression: 'last(/Veeam Backup And Replication/veeam.RepoInfo.PercentFree[''{#REPONAME}''])<{$VEEAM_REPO_FREE_WARN:"{#REPONAME}"}'
-                  name: 'Less than {$VEEAM_REPO_FREE_WARN:"{#REPONAME}"}% remaining on the repository {#REPONAME}'
-                  opdata: 'Current value: {ITEM.LASTVALUE1}'
+                  name: 'Moins de {$VEEAM_REPO_FREE_WARN:"{#REPONAME}"}% d''espace restant sur le dépôt {#REPONAME}'
+                  opdata: 'Valeur actuelle : {ITEM.LASTVALUE1}'
                   priority: HIGH
                   tags:
                     - tag: Application
-                      value: 'Veeam Backup and Replication'
+                      value: 'Dépôt Veeam'
                     - tag: Application
-                      value: 'Veeam Repository'
+                      value: 'Veeam Backup and Replication'
             - uuid: a1b2c3d4e5f64a7b8c9d0e1f2a3b4c5d
-              name: 'Repository type {#REPONAME}'
+              name: 'Type de dépôt {#REPONAME}'
               type: DEPENDENT
               key: 'veeam.RepoInfo.Type[''{#REPONAME}'']'
-              delay: '0'
               history: 30d
               valuemap:
                 name: VbrRepositoryType
@@ -719,34 +718,34 @@ zabbix_export:
                 key: 'veeam.RepoInfo.Info[''{#REPONAME}'']'
               tags:
                 - tag: Application
-                  value: 'Veeam Backup and Replication'
+                  value: 'Dépôt Veeam'
                 - tag: Application
-                  value: 'Veeam Repository'
-                - tag: Repository
+                  value: 'Veeam Backup and Replication'
+                - tag: Dépôt
                   value: '{#REPONAME}'
             - uuid: b8c2ffaefce140e894d405542afc610e
-              name: 'Used space {#REPONAME}'
+              name: 'Espace utilisé {#REPONAME}'
               type: CALCULATED
               key: 'veeam.RepoInfo.Used[''{#REPONAME}'']'
               delay: 10m
               units: B
               params: 'last(//veeam.RepoInfo.Capacity[''{#REPONAME}'']) - last(//veeam.RepoInfo.FreeSpace[''{#REPONAME}''])'
           graph_prototypes:
-            - uuid: 36f1adb2dd3c46648799202f4cae3e14
-              name: 'Percent free repository {#REPONAME}'
-              graph_items:
-                - color: 1A7C11
-                  item:
-                    host: 'Veeam Backup And Replication'
-                    key: 'veeam.RepoInfo.PercentFree[''{#REPONAME}'']'
             - uuid: 30818fc98c734dc18c88d91c0f0c829a
-              name: 'Remaining repository space {#REPONAME}'
+              name: 'Espace restant du dépôt {#REPONAME}'
               graph_items:
                 - sortorder: '1'
                   color: 1A7C11
                   item:
                     host: 'Veeam Backup And Replication'
                     key: 'veeam.RepoInfo.FreeSpace[''{#REPONAME}'']'
+            - uuid: 36f1adb2dd3c46648799202f4cae3e14
+              name: 'Pourcentage libre du dépôt {#REPONAME}'
+              graph_items:
+                - color: 1A7C11
+                  item:
+                    host: 'Veeam Backup And Replication'
+                    key: 'veeam.RepoInfo.PercentFree[''{#REPONAME}'']'
           master_item:
             key: 'veeam.info[RepoInfo]'
           lld_macro_paths:
@@ -764,43 +763,43 @@ zabbix_export:
       macros:
         - macro: '{$VEEAM.JOB.NAME.MATCHES}'
           value: '.*'
-          description: 'This macro is used in job discovery rule'
+          description: 'Cette macro est utilisée dans la règle de découverte des tâches'
         - macro: '{$VEEAM.JOB.NAME.NOT_MATCHES}'
           value: CHANGE_IF_NEEDED
-          description: 'This macro is used in job discovery rule'
+          description: 'Cette macro est utilisée dans la règle de découverte des tâches'
         - macro: '{$VEEAM.JOB.TYPE.MATCHES}'
           value: '.*'
-          description: 'This macro is used in job discovery rule'
+          description: 'Cette macro est utilisée dans la règle de découverte des tâches'
         - macro: '{$VEEAM.JOB.TYPE.NOT_MATCHES}'
           value: CHANGE_IF_NEEDED
-          description: 'This macro is used in job discovery rule'
+          description: 'Cette macro est utilisée dans la règle de découverte des tâches'
         - macro: '{$VEEAM.REPOSITORIES.NAME.MATCHES}'
           value: '.*'
-          description: 'This macro is used in repositories discovery rule.'
+          description: 'Cette macro est utilisée dans la règle de découverte des dépôts.'
         - macro: '{$VEEAM.REPOSITORIES.NAME.NOT_MATCHES}'
           value: CHANGE_IF_NEEDED
-          description: 'This macro is used in repositories discovery rule.'
+          description: 'Cette macro est utilisée dans la règle de découverte des dépôts.'
         - macro: '{$VEEAM.REPOSITORIES.TYPE.MATCHES}'
           value: '.*'
-          description: 'This macro is used in repositories discovery rule.'
+          description: 'Cette macro est utilisée dans la règle de découverte des dépôts.'
         - macro: '{$VEEAM.REPOSITORIES.TYPE.NOT_MATCHES}'
           value: CHANGE_IF_NEEDED
-          description: 'This macro is used in repositories discovery rule.'
+          description: 'Cette macro est utilisée dans la règle de découverte des dépôts.'
         - macro: '{$VEEAM_JOB_HOURS_WARN}'
           value: '8'
-          description: 'Maximum number of hours that a backup job can run before triggering an alert'
+          description: 'Nombre maximum d''heures pendant lesquelles une tâche de sauvegarde peut s''exécuter avant de déclencher une alerte'
         - macro: '{$VEEAM_JOB_RESULT_WARN}'
           value: '1'
-          description: 'Warn if job result is error or warning'
+          description: 'Avertir si le résultat de la tâche est une erreur ou un avertissement'
         - macro: '{$VEEAM_REPO_FREE_WARN}'
           value: '20'
-          description: 'Repository percent free - will trigger if value falls below this'
+          description: 'Pourcentage d''espace libre du dépôt - se déclenchera si la valeur descend en dessous de ce seuil'
         - macro: '{$VEEAM_REPO_OUTOFDATE}'
           value: '1'
-          description: 'Check for repository out of date information'
+          description: 'Vérifier si les informations du dépôt sont obsolètes'
       dashboards:
         - uuid: efed1a437da6423499ce721af038d375
-          name: 'Backup job duration'
+          name: 'Durée des tâches de sauvegarde'
           display_period: '60'
           pages:
             - widgets:
@@ -812,7 +811,7 @@ zabbix_export:
                       name: graphid.0
                       value:
                         host: 'Veeam Backup And Replication'
-                        name: 'Job duration: {#JOBNAME}'
+                        name: 'Durée de la tâche : {#JOBNAME}'
                     - type: STRING
                       name: reference
                       value: RHJDP
@@ -824,13 +823,13 @@ zabbix_export:
           name: VbrJsonResult
           mappings:
             - value: '-1'
-              newvalue: InProgress
+              newvalue: EnCours
             - value: '0'
-              newvalue: Success
+              newvalue: Succès
             - value: '1'
-              newvalue: Warning
+              newvalue: Avertissement
             - value: '2'
-              newvalue: Error
+              newvalue: Erreur
         - uuid: 2169ef546b0b4ec0b6535d0aeda4ca6c
           name: VbrRepositoryType
           mappings:
@@ -862,20 +861,20 @@ zabbix_export:
           name: veeamTypeMap
           mappings:
             - value: '0'
-              newvalue: Job
+              newvalue: Tâche
             - value: '1'
-              newvalue: Replication
+              newvalue: Réplication
             - value: '2'
-              newvalue: File
+              newvalue: Fichier
             - value: '28'
-              newvalue: Tape
+              newvalue: Bande
             - value: '51'
-              newvalue: Sync
+              newvalue: Synchronisation
             - value: '63'
-              newvalue: Copy
+              newvalue: Copie
             - value: '4030'
               newvalue: RMAN
             - value: '12002'
-              newvalue: AgentBackupPolicy
+              newvalue: PolitiqueSauvegardeAgent
             - value: '12003'
-              newvalue: AgentBackupJob
+              newvalue: TâcheSauvegardeAgent

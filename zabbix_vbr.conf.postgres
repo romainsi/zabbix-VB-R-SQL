@@ -4,5 +4,4 @@ SQLDatabase=VeeamBackup
 SQLIntegratedSecurity=false
 SQLUsername=postgres
 SQLPassword=CHANGEME
-VeeamServer=VEEAM01
 DBProvider=Postgres

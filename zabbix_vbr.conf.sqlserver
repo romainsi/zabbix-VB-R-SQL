@@ -3,5 +3,4 @@ SQLDatabase=VeeamBackup
 SQLIntegratedSecurity=false
 SQLUsername=zabbixveeam
 SQLPassword=CHANGEME
-VeeamServer=VEEAM01
 DBProvider=SqlServer

@@ -35,6 +35,7 @@ The script outputs JSON for discovery and dependent items.
   - Repositories
 - Secure credential handling via external config file
 - No hardcoded credentials in script
+- Template available in US English (en-us) and French (fr-fr)
 
 ---
 
@@ -79,7 +80,7 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO zabbixveeam;
 ### 2. Script Deployment
 Copy script:
 ```
-zabbix_vbr_jobs.ps1
+zabbix_vbr_job.ps1
 ```
 to:
 ```
@@ -108,7 +109,6 @@ SQLDatabase=VeeamBackup
 SQLIntegratedSecurity=false
 SQLUsername=zabbixveeam
 SQLPassword=CHANGEME
-VeeamServer=VEEAM01
 DBProvider=SqlServer
 ```
 
@@ -120,7 +120,6 @@ SQLDatabase=VeeamBackup
 SQLIntegratedSecurity=false
 SQLUsername=postgres
 SQLPassword=CHANGEME
-VeeamServer=VEEAM01
 DBProvider=Postgres
 ```
 
@@ -131,7 +130,6 @@ DBProvider=Postgres
 $path = "zabbix_vbr.conf"
 $acl = Get-Acl $path
 $acl.SetAccessRuleProtection($true,$false)
-$acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("NT SERVICE\ZabbixAgent","Read","Allow")))
 $acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("SYSTEM","FullControl","Allow")))
 $acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("BUILTIN\Administrators","FullControl","Allow")))
 Set-Acl $path $acl
@@ -144,8 +142,14 @@ Set-Acl $path $acl
 Add to agent config:
 
 ```
-UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_jobs.ps1" -Config "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr.conf" -Operation "$1"
+UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1" -Config "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr.conf" -Operation "$1"
 ```
+
+For Zabbix Agent 2 the paths should be:
+* `C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1`
+* `C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr.conf`
+
+respectively. Ajust where applicable.
 
 ### Supported keys
 - veeam.info[RepoInfo]
@@ -155,16 +159,17 @@ UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File 
 ---
 
 ### Import Template
-- Import Template_Veeam_Backup_And_Replication.yaml
+- Import `template_veeam_backup_and_replication_<language>.yaml`
 - Link template to host
 
 ---
 
 ### Timeout tuning
 ```powershell
-(Measure-Command { & "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_jobs.ps1" -Operation "JobsInfo" }).TotalSeconds
+(Measure-Command { & "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1" -Operation "JobsInfo" }).TotalSeconds
 ```
 
+If discovery rules are timing out in Zabbix, increase the Timeout parameter in the Zabbix agent configuration file to 30 seconds. The default Zabbix agent Timeout value is 3 seconds, which may not be sufficient in larger environments.
 ---
 
 ## Items
@@ -249,4 +254,4 @@ Automatically discovers:
 ---
 
 ## Version
-3.2
+3.3

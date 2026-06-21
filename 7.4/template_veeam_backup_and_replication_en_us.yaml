@@ -8,33 +8,72 @@ zabbix_export:
       template: 'Veeam Backup And Replication'
       name: 'Veeam Backup And Replication'
       description: |
-        Version: 3.2
-        Monitor Veeam Backup and Replication job and repository information
-        It uses SQL queries to the Veeam database to obtain the information
+        Version: 3.3
+        Monitor Veeam Backup & Replication job and repository information.
+        Uses SQL queries against the Veeam database and a PowerShell script to collect information.
+        Supports:
+        - Microsoft SQL Server (native .NET provider)
+        - PostgreSQL (ODBC)
+
         To use the template:
-        1. Install the Zabbix agent or Zabbix agent 2 on your host.
-        2. Connect to the veeam sql server, adjust protocols for VEEAMSQL in "Sql Server Configuration Manager" to permit connection using TCP/IP
-        3. Create User/Pass with reader rights, permit to connect with local user in sql settings and specify the default database, using SQL Server Management Studio.
-           Alternatively you can use the following sql commands, using sqlcmd.exe:
+
+        1. Install the Zabbix agent or Zabbix agent 2 on the host.
+
+        2. Create a database user with read-only access.
+
+        SQL Server:
         `USE [VeeamBackup]`
         `CREATE LOGIN [zabbixveeam] WITH PASSWORD = N'CHANGEME', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;`
         `CREATE USER [zabbixveeam] FOR LOGIN [zabbixveeam];`
         `EXEC sp_addrolemember 'db_datareader', 'zabbixveeam';`
         `GO`
-        4. In script, ajust variables on lines 73-78 to match your configuration
-        5. Copy `zabbix_vbr_job.ps1` in the directory : `C:\Program Files\Zabbix Agent 2\scripts\` (create folder if not exist)
-        6. Add `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1" "$1"` in zabbix_agent2.conf
-        7. Associate the template to the host with Veeam Backup and Replication installed
-        
+
+        PostgreSQL:
+        `CREATE USER zabbixveeam WITH PASSWORD 'CHANGEME';`
+        `GRANT CONNECT ON DATABASE "VeeamBackup" TO zabbixveeam;`
+        `GRANT USAGE ON SCHEMA public TO zabbixveeam;`
+        `GRANT SELECT ON ALL TABLES IN SCHEMA public TO zabbixveeam;`
+
+        3. Copy `zabbix_vbr_job.ps1` to:
+        `C:\Program Files\Zabbix Agent\scripts\`
+
+        4. Create the file `zabbix_vbr.conf` and place it in the same directory as the script.
+
+        SQL Server example:
+        SQLServer=SQLSERVER\INSTANCE
+        SQLDatabase=VeeamBackup
+        SQLIntegratedSecurity=false
+        SQLUsername=zabbixveeam
+        SQLPassword=CHANGEME
+        DBProvider=SqlServer
+
+        PostgreSQL example:
+        SQLServer=localhost
+        SQLPort=5432
+        SQLDatabase=VeeamBackup
+        SQLIntegratedSecurity=false
+        SQLUsername=postgres
+        SQLPassword=CHANGEME
+        DBProvider=Postgres
+
+        5. Add the following UserParameter to zabbix_agent.conf:
+        `UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1" -Config "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr.conf" -Operation "$1"`
+
+        6. Import `Template_Veeam_Backup_And_Replication.yaml`.
+
+        7. Link the template to the host.
+
+        Note: If discovery rules are timing out in Zabbix, increase the Timeout parameter in the Zabbix agent configuration file to 30 seconds. The default Zabbix agent Timeout value is 3 seconds, which may not be sufficient in larger environments.
+
         Created by:
         Romainsi https://github.com/romainsi
-        
+
         Contributions:
         aholiveira https://github.com/aholiveira
         xtonousou https://github.com/xtonousou
       vendor:
         name: romainsi
-        version: '3.2'
+        version: '3.3'
       groups:
         - name: Templates/Applications
       items:

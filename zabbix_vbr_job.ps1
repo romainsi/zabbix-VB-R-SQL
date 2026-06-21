@@ -24,7 +24,6 @@
         SQLIntegratedSecurity=false
         SQLUsername=veeam_db
         SQLPassword=S3cur3P@ssw0rd
-        VeeamServer=VEEAMSERVER
         DBProvider=SqlServer
 
     Example (PostgreSQL via ODBC):
@@ -36,7 +35,6 @@
         SQLIntegratedSecurity=false
         SQLUsername=postgres
         SQLPassword=S3cur3P@ssw0rd
-        VeeamServer=VEEAMSERVER
         DBProvider=Postgres
 
     DBProvider must be either SqlServer or Postgres.
@@ -52,30 +50,20 @@
 
 .SECURING THE CONFIG FILE
     Run the following from an elevated PowerShell prompt to lock down the config file.
-    Replace "NT SERVICE\ZabbixAgent" with your actual Zabbix agent service account.
-    If running under LocalSystem, use "NT AUTHORITY\SYSTEM".
     Replace $path if you are not using the default location.
 
         $path = "zabbix_vbr.conf"
         $acl = Get-Acl $path
         $acl.SetAccessRuleProtection($true, $false)
-        $acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
-            "NT SERVICE\ZabbixAgent", "Read", "Allow"
-        )))
-        # Also allow SYSTEM and local Administrators
-        $acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
-            "SYSTEM", "FullControl", "Allow"
-        )))
-        $acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
-            "BUILTIN\Administrators", "FullControl", "Allow"
-        )))
+        $acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("SYSTEM", "FullControl", "Allow")))
+        $acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("BUILTIN\Administrators", "FullControl", "Allow")))
         Set-Acl $path $acl
 
 .ZABBIX AGENT CONFIGURATION
     Add the following to your Zabbix agent configuration file (zabbix_agentd.conf) or
     in a zabbix_agentd.d/*.conf file. Adjust the path to the script as needed:
 
-        UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_jobs.ps1" -Operation "$1"
+        UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1" -Config "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr.conf" -Operation "$1"
 
     Zabbix item keys:
         veeam.info[RepoInfo]   - Repository information (JSON)
@@ -118,7 +106,7 @@
     Original author : Romainsi   https://github.com/romainsi
     Contributions   : aholiveira https://github.com/aholiveira
                       xtonousou  https://github.com/xtonousou
-    Version         : 3.2
+    Version         : 3.3
 
 .LINK
     https://github.com/romainsi/zabbix-VB-R-SQL
