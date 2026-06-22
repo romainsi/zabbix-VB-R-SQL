@@ -145,11 +145,11 @@ Add to agent config:
 UserParameter=veeam.info[*],powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr_job.ps1" -Config "C:\Program Files\Zabbix Agent\scripts\zabbix_vbr.conf" -Operation "$1"
 ```
 
-For Zabbix Agent 2 the paths should be:
+For Zabbix Agent 2 the paths should be, respectively:
 * `C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr_job.ps1`
 * `C:\Program Files\Zabbix Agent 2\scripts\zabbix_vbr.conf`
 
-respectively. Ajust where applicable.
+Ajust where applicable.
 
 ### Supported keys
 - veeam.info[RepoInfo]
@@ -170,6 +170,7 @@ respectively. Ajust where applicable.
 ```
 
 If discovery rules are timing out in Zabbix, increase the Timeout parameter in the Zabbix agent configuration file to 30 seconds. The default Zabbix agent Timeout value is 3 seconds, which may not be sufficient in larger environments.
+
 ---
 
 ## Items
